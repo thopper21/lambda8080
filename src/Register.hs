@@ -1,6 +1,6 @@
 module Register
-  ( Register8
-  , Register16
+  ( Register8(..)
+  , Register16(..)
   ) where
 
 data Register8
@@ -11,6 +11,8 @@ data Register8
   | E
   | H
   | L
+  | M
+  deriving (Show)
 
 data Register16
   = BC
@@ -18,3 +20,4 @@ data Register16
   | HL
   | PC
   | SP
+  deriving (Show)

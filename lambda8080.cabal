@@ -30,6 +30,8 @@ library
       Lib
   other-modules:
       Paths_lambda8080
+      Instruction
+      Register
   hs-source-dirs:
       src
   build-depends:

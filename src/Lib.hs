@@ -2,5 +2,7 @@ module Lib
     ( someFunc
     ) where
 
+import Instruction
+
 someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+someFunc = print (toInstruction 0x01)
