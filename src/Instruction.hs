@@ -3,7 +3,7 @@ module Instruction
   , toInstruction
   ) where
 
-import           Data.Int
+import           Data.Word
 import           Register
 
 data Instruction
@@ -49,7 +49,7 @@ data Instruction
   | CNZ
   | PUSH Register16
   | ADI
-  | RST Int8
+  | RST Word8
   | RZ
   | RET
   | JZ
@@ -89,7 +89,7 @@ data Instruction
   | CPI
   deriving (Show)
 
-toInstruction :: Int16 -> Instruction
+toInstruction :: Word16 -> Instruction
 toInstruction code =
   case code of
     0x00 -> NOP
