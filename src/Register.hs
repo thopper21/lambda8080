@@ -12,4 +12,8 @@ data Register8
   | L
 
 data Register16
- = BC | DE | HL | PC | CL
+  = BC
+  | DE
+  | HL
+  | PC
+  | SP
