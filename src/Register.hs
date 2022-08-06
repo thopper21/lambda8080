@@ -1,5 +1,6 @@
 module Register
-  ( Register8, Register16
+  ( Register8
+  , Register16
   ) where
 
 data Register8
