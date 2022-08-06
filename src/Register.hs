@@ -2,7 +2,7 @@ module Register
   ( Register
   ) where
 
-data Register
+data Register8
   = A
   | B
   | C
@@ -10,3 +10,6 @@ data Register
   | E
   | H
   | L
+
+data Register16
+ = BC | DE | HL | PC | CL
