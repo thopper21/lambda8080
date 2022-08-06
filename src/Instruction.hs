@@ -89,7 +89,7 @@ data Instruction
   | CPI
   deriving (Show)
 
-toInstruction :: Word16 -> Instruction
+toInstruction :: Word8 -> Instruction
 toInstruction code =
   case code of
     0x00 -> NOP
