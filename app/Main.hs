@@ -1,34 +1,40 @@
 module Main where
 
+import           Data.ByteString     as BS (drop, readFile, unpack)
 import           Data.Semigroup      ((<>))
+import           Disassembler
 import           Options.Applicative
 
 data DisassemblerArgs = DisassemblerArgs
   { file   :: FilePath
   , offset :: Int
-  , length :: Int
+  , count  :: Int
   }
 
-disassemblerArgsParser :: Parser DisassemblerArgs
-disassemblerArgsParser =
-  DisassemblerArgs <$>
-  strOption (long "file" <> metavar "FILE" <> help "The file to disassemble") <*>
-  option
-    auto
-    (long "offset" <> short 'o' <> help "The offset into the assembly file" <>
-     metavar "INT" <>
-     value 1) <*>
-  option
-    auto
-    (long "length" <> short 'l' <> help "The number of instructions to read" <>
-     metavar "INT" <>
-     value 100)
+disassemblerArgsParser = DisassemblerArgs <$> file' <*> offset' <*> count'
+  where
+    file' =
+      strOption
+        (long "file" <> metavar "FILE" <> help "The file to disassemble")
+    offset' =
+      option
+        auto
+        (long "offset" <> short 'o' <> help "The offset into the assembly file" <>
+         metavar "INT" <>
+         value 0)
+    count' =
+      option
+        auto
+        (long "count" <> short 'c' <> help "The number of instructions to read" <>
+         metavar "INT" <>
+         value 100)
 
-disassemble :: DisassemblerArgs -> IO ()
-disassemble args = putStrLn $ file args
+runDisassembler args = do
+  assembly <- BS.readFile $ file args
+  let instructions = disassemble $ BS.unpack (BS.drop (offset args) assembly)
+  mapM_ print $ take (count args) instructions
 
-main :: IO ()
-main = disassemble =<< execParser opts
+main = runDisassembler =<< execParser opts
   where
     opts =
       info

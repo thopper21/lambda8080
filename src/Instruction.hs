@@ -1,5 +1,5 @@
 module Instruction
-  ( Instruction
+  ( Instruction(..)
   , toInstruction
   ) where
 
@@ -78,6 +78,7 @@ data Instruction
   | CPE
   | XRI
   | RP
+  | JP
   | DI
   | CP
   | ORI
@@ -334,7 +335,7 @@ toInstruction code =
     0xef -> RST 5
     0xf0 -> RP
     0xf1 -> POP SP
-    0xf2 -> JPE
+    0xf2 -> JP
     0xf3 -> DI
     0xf4 -> CP
     0xf5 -> PUSH SP
