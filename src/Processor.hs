@@ -71,10 +71,7 @@ readMemory8 addr =
   gets $ fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
 
 readMemory16 :: Word16 -> State Processor Word16
-readMemory16 addr = do
-  low <- readMemory8 addr
-  high <- readMemory8 (addr + 1)
-  return $ to16 high low
+readMemory16 addr = liftM2 to16 (readMemory8 addr) (readMemory8 (addr + 1))
 
 readImmediate8 :: State Processor Word8
 readImmediate8 = do
@@ -84,10 +81,7 @@ readImmediate8 = do
   return result
 
 readImmediate16 :: State Processor Word16
-readImmediate16 = do
-  low <- readImmediate8
-  high <- readImmediate8
-  return $ to16 high low
+readImmediate16 = liftM2 to16 readImmediate8 readImmediate8
 
 writeRegister8 :: Register8 -> Word8 -> State Processor ()
 writeRegister8 M value = do
@@ -137,8 +131,7 @@ registerBinaryArithmetic ::
      Register8 -> (Word16 -> Word16 -> Word16) -> State Processor ()
 registerBinaryArithmetic = binaryArithmetic . readRegister8
 
-immediateBinaryArithmetic ::
-     (Word16 -> Word16 -> Word16) -> State Processor ()
+immediateBinaryArithmetic :: (Word16 -> Word16 -> Word16) -> State Processor ()
 immediateBinaryArithmetic = binaryArithmetic readImmediate8
 
 binaryArithmetic ::
