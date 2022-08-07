@@ -150,13 +150,13 @@ processBinaryArithmetic getter op = do
   updateArithmeticFlags result
   writeRegister8 A (fromIntegral result)
 
-withCarry ::
+carry ::
      (Word16 -> Word16 -> Word16)
   -> State Processor (Word16 -> Word16 -> Word16)
-withCarry op = do
-  carry <- gets $ cy . flags
+carry op = do
+  isSet <- gets $ cy . flags
   return $
-    if carry
+    if isSet
       then \left right -> left `op` right `op` 1
       else op
 
@@ -244,11 +244,11 @@ process (DCX reg) = do
   writeRegister16 reg newValue
 process (ADD from) = processRegisterBinaryArithmetic from (+)
 process (ADC from) = do
-  op <- withCarry (+)
+  op <- carry (+)
   processRegisterBinaryArithmetic from op
 process ADI = processImmediateBinaryArithmetic (+)
 process ACI = do
-  op <- withCarry (+)
+  op <- carry (+)
   processImmediateBinaryArithmetic op
 process (DAD from) = do
   left <- readRegister16 HL
@@ -259,9 +259,9 @@ process (DAD from) = do
   writeRegister16 HL (fromIntegral result)
 process (SUB from) = processRegisterBinaryArithmetic from (-)
 process (SBB from) = do
-  op <- withCarry (-)
+  op <- carry (-)
   processRegisterBinaryArithmetic from op
 process SUI = processImmediateBinaryArithmetic (-)
 process SBI = do
-  op <- withCarry (-)
+  op <- carry (-)
   processImmediateBinaryArithmetic op
