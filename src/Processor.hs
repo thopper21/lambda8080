@@ -186,39 +186,24 @@ updateIncFlags result =
 
 process :: Instruction -> State Processor ()
 process NOP = return ()
-process (MOV to from) = do
-  value <- readRegister8 from
-  writeRegister8 to value
-process (MVI to) = do
-  value <- readImmediate8
-  writeRegister8 to value
-process (LXI to) = do
-  addr <- readImmediate16
-  writeRegister16 to addr
+process (MOV to from) = readRegister8 from >>= writeRegister8 to
+process (MVI to) = readImmediate8 >>= writeRegister8 to
+process (LXI to) = readImmediate16 >>= writeRegister16 to
 process (STAX to) = do
   addr <- readRegister16 to
   value <- readRegister8 A
   writeMemory8 addr value
-process (LDAX from) = do
-  addr <- readRegister16 from
-  value <- readMemory8 addr
-  writeRegister8 A value
+process (LDAX from) = readRegister16 from >>= readMemory8 >>= writeRegister8 A
 process STA = do
   addr <- readImmediate16
   value <- readRegister8 A
   writeMemory8 addr value
-process LDA = do
-  addr <- readImmediate16
-  value <- readMemory8 addr
-  writeRegister8 A value
+process LDA = readImmediate16 >>= readMemory8 >>= writeRegister8 A
 process SHLD = do
   value <- readRegister16 HL
   addr <- readImmediate16
   writeMemory16 addr value
-process LHLD = do
-  addr <- readImmediate16
-  value <- readMemory16 addr
-  writeRegister16 HL value
+process LHLD = readImmediate16 >>= readMemory16 >>= writeRegister16 HL
 process XCHG = do
   oldDE <- readRegister16 DE
   oldHL <- readRegister16 HL
@@ -243,13 +228,9 @@ process (DCX reg) = do
   let newValue = value - 1
   writeRegister16 reg newValue
 process (ADD from) = processRegisterBinaryArithmetic from (+)
-process (ADC from) = do
-  op <- carry (+)
-  processRegisterBinaryArithmetic from op
+process (ADC from) = carry (+) >>= processRegisterBinaryArithmetic from
 process ADI = processImmediateBinaryArithmetic (+)
-process ACI = do
-  op <- carry (+)
-  processImmediateBinaryArithmetic op
+process ACI = carry (+) >>= processImmediateBinaryArithmetic
 process (DAD from) = do
   left <- readRegister16 HL
   right <- readRegister16 from
@@ -258,10 +239,6 @@ process (DAD from) = do
     processor {flags = (flags processor) {cy = result > 0xffff}}
   writeRegister16 HL (fromIntegral result)
 process (SUB from) = processRegisterBinaryArithmetic from (-)
-process (SBB from) = do
-  op <- carry (-)
-  processRegisterBinaryArithmetic from op
+process (SBB from) = carry (-) >>= processRegisterBinaryArithmetic from
 process SUI = processImmediateBinaryArithmetic (-)
-process SBI = do
-  op <- carry (-)
-  processImmediateBinaryArithmetic op
+process SBI = carry (-) >>= processImmediateBinaryArithmetic
