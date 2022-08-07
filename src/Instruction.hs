@@ -33,6 +33,8 @@ data Instruction
   | MOV Register8
         Register8
   | MVI Register8
+  | STAX Register16
+  | LDAX Register16
   -- Add
   | ADD Register8
   | ADC Register8
@@ -51,9 +53,7 @@ data Instruction
   | DCX Register16
   -- NYI BELOW THIS LINE
   | LXI Register16
-  | STAX Register16
   | RLC
-  | LDAX Register16
   | RRC
   | RAL
   | RAR

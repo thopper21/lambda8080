@@ -49,11 +49,12 @@ readRegister16 HL = readRegister16' H L
 readRegister16 PC = pc . registers
 readRegister16 SP = sp . registers
 
-readRegister16' high low processor =
-  shift (fromIntegral highVal) 8 + fromIntegral lowVal
+readRegister16' high low processor = to16 highVal lowVal
   where
     highVal = readRegister8 high processor
     lowVal = readRegister8 low processor
+
+to16 high low = shift (fromIntegral high) 8 .|. fromIntegral low
 
 readMemory addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
 
@@ -140,6 +141,17 @@ process (MOV to from) processor =
 process (MVI to) processor = writeRegister8 to value newProcessor
   where
     (value, newProcessor) = readImmediate processor
+process (LXI to) processor = writeRegister16 to (to16 high low) processor
+  where
+    (low, newProcessor) = readImmediate processor
+    (high, newProcessor') = readImmediate newProcessor
+process (STAX to) processor = writeMemory addr value processor
+  where
+    addr = readRegister16 to processor
+    value = readRegister8 A processor
+process (LDAX from) processor = writeRegister8 A value processor
+  where
+    value = readMemory (readRegister16 from processor) processor
 process (INR reg) processor = newProcessor {flags = newFlags}
   where
     newReg = readRegister8 reg processor + 1
