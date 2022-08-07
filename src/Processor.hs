@@ -32,7 +32,7 @@ data Processor = Processor
   , memory    :: IntMap Word8
   }
 
-readRegister8 M processor = readMemory (readRegister16 HL processor) processor
+readRegister8 M processor = readMemory8 (readRegister16 HL processor) processor
 readRegister8 reg processor = toReader reg . registers $ processor
 
 toReader A = a
@@ -57,12 +57,20 @@ readRegister16' high low processor = to16 highVal lowVal
 to16 :: Word8 -> Word8 -> Word16
 to16 high low = shift (fromIntegral high) 8 .|. fromIntegral low
 
-readMemory addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
+from16 :: Word16 -> (Word8, Word8)
+from16 value = (fromIntegral $ shift value (-8), fromIntegral value)
+
+readMemory8 addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
+
+readMemory16 addr processor = to16 high low
+  where
+    low = readMemory8 addr processor
+    high = readMemory8 (addr + 1) processor
 
 readImmediate8 processor = (result, newProcessor)
   where
     counter = readRegister16 PC processor
-    result = readMemory counter processor
+    result = readMemory8 counter processor
     newProcessor = writeRegister16 PC (counter + 1) processor
 
 readImmediate16 processor = (to16 high low, newProcessor')
@@ -71,7 +79,7 @@ readImmediate16 processor = (to16 high low, newProcessor')
     (high, newProcessor') = readImmediate8 newProcessor
 
 writeRegister8 M value processor =
-  writeMemory (readRegister16 HL processor) value processor
+  writeMemory8 (readRegister16 HL processor) value processor
 writeRegister8 reg value processor =
   processor {registers = toWriter reg value (registers processor)}
 
@@ -94,11 +102,16 @@ writeRegister16 SP value processor =
 writeRegister16' high low value =
   writeRegister8 high highVal . writeRegister8 low lowVal
   where
-    highVal = fromIntegral $ shift (value .&. 0xff00) (-8)
-    lowVal = fromIntegral $ value .&. 0xff
+    (highVal, lowVal) = from16 value
 
-writeMemory addr value processor =
+writeMemory8 addr value processor =
   processor {memory = insert (fromIntegral addr) value (memory processor)}
+
+writeMemory16 addr value processor = newProcessor'
+  where
+    (high, low) = from16 value
+    newProcessor = writeMemory8 addr low processor
+    newProcessor' = writeMemory8 (addr + 1) high newProcessor
 
 processBinaryArithmetic from op processor =
   processor {flags = newFlags, registers = newRegisters}
@@ -150,21 +163,25 @@ process (MVI to) processor = writeRegister8 to value newProcessor
 process (LXI to) processor = writeRegister16 to addr newProcessor
   where
     (addr, newProcessor) = readImmediate16 processor
-process (STAX to) processor = writeMemory addr value processor
+process (STAX to) processor = writeMemory8 addr value processor
   where
     addr = readRegister16 to processor
     value = readRegister8 A processor
 process (LDAX from) processor = writeRegister8 A value processor
   where
-    value = readMemory (readRegister16 from processor) processor
-process STA processor = writeMemory addr value newProcessor
+    value = readMemory8 (readRegister16 from processor) processor
+process STA processor = writeMemory8 addr value newProcessor
   where
     (addr, newProcessor) = readImmediate16 processor
     value = readRegister8 A newProcessor
 process LDA processor = writeRegister8 A value newProcessor
   where
     (addr, newProcessor) = readImmediate16 processor
-    value = readMemory addr newProcessor
+    value = readMemory8 addr newProcessor
+process SHLD processor = writeMemory16 addr value newProcessor
+  where
+    value = readRegister16 HL processor
+    (addr, newProcessor) = readImmediate16 processor
 process (INR reg) processor = newProcessor {flags = newFlags}
   where
     newReg = readRegister8 reg processor + 1
