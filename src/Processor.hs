@@ -136,29 +136,6 @@ getIncDecFlags result flags =
 
 process :: Instruction -> Processor -> Processor
 process NOP processor = processor
-process (ADD from) processor = processBinaryArithmetic from (+) processor
-process (ADC from) processor =
-  processBinaryArithmetic from (withCarry (+) processor) processor
-process ADI processor = processImmediateBinaryArithmetic (+) processor
-process ACI processor =
-  processImmediateBinaryArithmetic (withCarry (+) processor) processor
-process (SUB from) processor = processBinaryArithmetic from (-) processor
-process (SBB from) processor =
-  processBinaryArithmetic from (withCarry (-) processor) processor
-process SUI processor = processImmediateBinaryArithmetic (-) processor
-process SBI processor =
-  processImmediateBinaryArithmetic (withCarry (-) processor) processor
-process (DAD from) processor =
-  processor {flags = newFlags, registers = newRegisters}
-  where
-    left = fromIntegral $ readRegister16 HL processor :: Word32
-    right = fromIntegral $ readRegister16 from processor :: Word32
-    result = left + right
-    newFlags = (flags processor) {cy = result > 0xffff}
-    high = shift (result .&. 0xff00) (-8)
-    low = result .&. 0xff
-    newRegisters =
-      (registers processor) {h = fromIntegral high, l = fromIntegral low}
 process (INR reg) processor = newProcessor {flags = newFlags}
   where
     newReg = readRegister8 reg processor + 1
@@ -175,3 +152,26 @@ process (INX reg) processor = writeRegister16 reg newReg processor
 process (DCX reg) processor = writeRegister16 reg newReg processor
   where
     newReg = readRegister16 reg processor - 1
+process (ADD from) processor = processBinaryArithmetic from (+) processor
+process (ADC from) processor =
+  processBinaryArithmetic from (withCarry (+) processor) processor
+process ADI processor = processImmediateBinaryArithmetic (+) processor
+process ACI processor =
+  processImmediateBinaryArithmetic (withCarry (+) processor) processor
+process (DAD from) processor =
+  processor {flags = newFlags, registers = newRegisters}
+  where
+    left = fromIntegral $ readRegister16 HL processor :: Word32
+    right = fromIntegral $ readRegister16 from processor :: Word32
+    result = left + right
+    newFlags = (flags processor) {cy = result > 0xffff}
+    high = shift (result .&. 0xff00) (-8)
+    low = result .&. 0xff
+    newRegisters =
+      (registers processor) {h = fromIntegral high, l = fromIntegral low}
+process (SUB from) processor = processBinaryArithmetic from (-) processor
+process (SBB from) processor =
+  processBinaryArithmetic from (withCarry (-) processor) processor
+process SUI processor = processImmediateBinaryArithmetic (-) processor
+process SBI processor =
+  processImmediateBinaryArithmetic (withCarry (-) processor) processor
