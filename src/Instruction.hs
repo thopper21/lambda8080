@@ -36,6 +36,7 @@ data Instruction
   | STAX Register16
   | LDAX Register16
   | STA
+  | LDA
   -- Add
   | ADD Register8
   | ADC Register8
@@ -65,7 +66,6 @@ data Instruction
   | CMA
   | SIM
   | STC
-  | LDA
   | CMC
   | HLT
   | ANA Register8

@@ -159,6 +159,11 @@ process STA processor = writeMemory addr value newProcessor'
     (high, newProcessor') = readImmediate newProcessor
     value = readRegister8 A newProcessor'
     addr = to16 high low
+process LDA processor = writeRegister8 A value newProcessor'
+  where
+    (low, newProcessor) = readImmediate processor
+    (high, newProcessor') = readImmediate newProcessor
+    value = readMemory (to16 high low) newProcessor'
 process (INR reg) processor = newProcessor {flags = newFlags}
   where
     newReg = readRegister8 reg processor + 1
