@@ -17,6 +17,7 @@ data Instruction
   -- Subtract
   | SUB Register8
   | SBB Register8
+  | SUI
   -- Increment/Decrement
   | INR Register8
   | DCR Register8
@@ -64,7 +65,6 @@ data Instruction
   | JNC
   | OUT
   | CNC
-  | SUI
   | RC
   | JC
   | IN
