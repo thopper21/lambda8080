@@ -138,6 +138,9 @@ process :: Instruction -> Processor -> Processor
 process NOP processor = processor
 process (MOV to from) processor =
   writeRegister8 to (readRegister8 from processor) processor
+process (MVI to) processor = writeRegister8 to value newProcessor
+  where
+    (value, newProcessor) = readImmediate processor
 process (INR reg) processor = newProcessor {flags = newFlags}
   where
     newReg = readRegister8 reg processor + 1

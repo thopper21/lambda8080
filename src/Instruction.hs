@@ -11,6 +11,7 @@ data Instruction
   -- Move, Load and Store
   | MOV Register8
         Register8
+  | MVI Register8
   -- Add
   | ADD Register8
   | ADC Register8
@@ -30,7 +31,6 @@ data Instruction
   -- NYI BELOW THIS LINE
   | LXI Register16
   | STAX Register16
-  | MVI Register8
   | RLC
   | LDAX Register16
   | RRC
