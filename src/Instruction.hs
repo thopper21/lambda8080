@@ -18,6 +18,7 @@ data Instruction
   | SUB Register8
   | SBB Register8
   | SUI
+  | SBI
   -- Increment/Decrement
   | INR Register8
   | DCR Register8
@@ -69,7 +70,6 @@ data Instruction
   | JC
   | IN
   | CC
-  | SBI
   | RPO
   | JPO
   | XTHL

@@ -146,6 +146,7 @@ process (SUB from) processor = processBinaryArithmetic from (-) processor
 process (SBB from) processor =
   processBinaryArithmetic from (withCarry (-) processor) processor
 process SUI processor = processImmediateBinaryArithmetic (-) processor
+process SBI processor = processImmediateBinaryArithmetic (withCarry (-) processor) processor
 process (DAD from) processor =
   processor {flags = newFlags, registers = newRegisters}
   where
