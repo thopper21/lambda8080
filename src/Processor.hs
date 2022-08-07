@@ -33,14 +33,16 @@ data Processor = Processor
   , memory    :: IntMap Word8
   }
 
-readRegister8 A processor = a . registers $ processor
-readRegister8 B processor = b . registers $ processor
-readRegister8 C processor = c . registers $ processor
-readRegister8 D processor = d . registers $ processor
-readRegister8 E processor = e . registers $ processor
-readRegister8 H processor = h . registers $ processor
-readRegister8 L processor = l . registers $ processor
 readRegister8 M processor = readMemory (readRegister16 HL processor) processor
+readRegister8 reg processor = toReader reg . registers $ processor
+
+toReader A = a
+toReader B = b
+toReader C = c
+toReader D = d
+toReader E = e
+toReader H = h
+toReader L = l
 
 readRegister16 BC = readRegister16' B C
 readRegister16 DE = readRegister16' D E
@@ -54,27 +56,21 @@ readRegister16' high low processor =
     highVal = readRegister8 high processor
     lowVal = readRegister8 low processor
 
-readMemory :: Word16 -> Processor -> Word8
 readMemory addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
 
-writeRegister8 A value processor =
-  processor {registers = (registers processor) {a = value}}
-writeRegister8 B value processor =
-  processor {registers = (registers processor) {b = value}}
-writeRegister8 C value processor =
-  processor {registers = (registers processor) {c = value}}
-writeRegister8 D value processor =
-  processor {registers = (registers processor) {d = value}}
-writeRegister8 E value processor =
-  processor {registers = (registers processor) {e = value}}
-writeRegister8 H value processor =
-  processor {registers = (registers processor) {h = value}}
-writeRegister8 L value processor =
-  processor {registers = (registers processor) {l = value}}
 writeRegister8 M value processor =
   writeMemory (readRegister16 HL processor) value processor
+writeRegister8 reg value processor =
+  processor {registers = toWriter reg value (registers processor)}
 
-writeRegister16 :: Register16 -> Word16 -> Processor -> Processor
+toWriter A value registers = registers {a = value}
+toWriter B value registers = registers {b = value}
+toWriter C value registers = registers {c = value}
+toWriter D value registers = registers {d = value}
+toWriter E value registers = registers {e = value}
+toWriter H value registers = registers {h = value}
+toWriter L value registers = registers {l = value}
+
 writeRegister16 BC value processor = writeRegister16' B C value processor
 writeRegister16 DE value processor = writeRegister16' D E value processor
 writeRegister16 HL value processor = writeRegister16' H L value processor
@@ -83,7 +79,6 @@ writeRegister16 PC value processor =
 writeRegister16 SP value processor =
   processor {registers = (registers processor) {sp = value}}
 
-writeRegister16' :: Register8 -> Register8 -> Word16 -> Processor -> Processor
 writeRegister16' high low value =
   writeRegister8 high highVal . writeRegister8 low lowVal
   where
@@ -93,8 +88,6 @@ writeRegister16' high low value =
 writeMemory addr value processor =
   processor {memory = insert (fromIntegral addr) value (memory processor)}
 
-processBinaryArithmetic ::
-     Register8 -> (Word16 -> Word16 -> Word16) -> Processor -> Processor
 processBinaryArithmetic from op processor =
   processor {flags = newFlags, registers = newRegisters}
   where
@@ -104,14 +97,12 @@ processBinaryArithmetic from op processor =
     newFlags = getArithmeticFlags result
     newRegisters = (registers processor) {a = fromIntegral result}
 
-withCarry ::
-     (Word16 -> Word16 -> Word16) -> Processor -> Word16 -> Word16 -> Word16
 withCarry op processor left right =
   if cy . flags $ processor
     then left `op` right `op` 1
     else left `op` right
 
--- Use 16 bits here to easily check for the carry flag
+-- Force 16 bits here to easily check for the carry flag
 getArithmeticFlags :: Word16 -> Flags
 getArithmeticFlags result =
   Flags
@@ -140,10 +131,8 @@ process (SBB from) processor =
 process (DAD from) processor =
   processor {flags = newFlags, registers = newRegisters}
   where
-    left :: Word32
-    left = fromIntegral $ readRegister16 HL processor
-    right :: Word32
-    right = fromIntegral $ readRegister16 from processor
+    left = fromIntegral $ readRegister16 HL processor :: Word32
+    right = fromIntegral $ readRegister16 from processor :: Word32
     result = left + right
     newFlags = (flags processor) {cy = result > 0xffff}
     high = shift (result .&. 0xff00) (-8)
