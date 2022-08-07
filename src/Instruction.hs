@@ -11,6 +11,7 @@ data Instruction
   -- Add
   | ADD Register8
   | ADC Register8
+  | DAD Register16
   -- Subtract
   | SUB Register8
   | SBB Register8
@@ -22,7 +23,6 @@ data Instruction
   | DCR Register8
   | MVI Register8
   | RLC
-  | DAD Register16
   | LDAX Register16
   | DCX Register16
   | RRC

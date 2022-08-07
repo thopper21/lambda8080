@@ -83,6 +83,19 @@ process (ADC from) processor =
   processBinaryArithmetic from (withCarry (+) processor) processor
 process (SBB from) processor =
   processBinaryArithmetic from (withCarry (-) processor) processor
+process (DAD from) processor =
+  processor {flags = newFlags, registers = newRegisters}
+  where
+    left :: Word32
+    left = fromIntegral $ readRegister16 HL processor
+    right :: Word32
+    right = fromIntegral $ readRegister16 from processor
+    result = left + right
+    newFlags = (flags processor) {cy = result > 0xffff}
+    high = shift result (-8) .&. 255
+    low = result .&. 0xff
+    newRegisters =
+      (registers processor) {h = fromIntegral high, l = fromIntegral low}
 
 -- Use 16 bits here to easily check for the carry flag
 getArithmeticFlags :: Word16 -> Flags
