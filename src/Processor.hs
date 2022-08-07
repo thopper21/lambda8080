@@ -57,22 +57,38 @@ readRegister16' high low processor =
 readMemory :: Word16 -> Processor -> Word8
 readMemory addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
 
-writeRegister A value processor =
+writeRegister8 A value processor =
   processor {registers = (registers processor) {a = value}}
-writeRegister B value processor =
+writeRegister8 B value processor =
   processor {registers = (registers processor) {b = value}}
-writeRegister C value processor =
+writeRegister8 C value processor =
   processor {registers = (registers processor) {c = value}}
-writeRegister D value processor =
+writeRegister8 D value processor =
   processor {registers = (registers processor) {d = value}}
-writeRegister E value processor =
+writeRegister8 E value processor =
   processor {registers = (registers processor) {e = value}}
-writeRegister H value processor =
+writeRegister8 H value processor =
   processor {registers = (registers processor) {h = value}}
-writeRegister L value processor =
+writeRegister8 L value processor =
   processor {registers = (registers processor) {l = value}}
-writeRegister M value processor =
+writeRegister8 M value processor =
   writeMemory (readRegister16 HL processor) value processor
+
+writeRegister16 :: Register16 -> Word16 -> Processor -> Processor
+writeRegister16 BC value processor = writeRegister16' B C value processor
+writeRegister16 DE value processor = writeRegister16' D E value processor
+writeRegister16 HL value processor = writeRegister16' H L value processor
+writeRegister16 PC value processor =
+  processor {registers = (registers processor) {pc = value}}
+writeRegister16 SP value processor =
+  processor {registers = (registers processor) {sp = value}}
+
+writeRegister16' :: Register8 -> Register8 -> Word16 -> Processor -> Processor
+writeRegister16' high low value =
+  writeRegister8 high highVal . writeRegister8 low lowVal
+  where
+    highVal = fromIntegral $ shift (value .&. 0xff00) (-8)
+    lowVal = fromIntegral $ value .&. 0xff
 
 writeMemory addr value processor =
   processor {memory = insert (fromIntegral addr) value (memory processor)}
@@ -138,9 +154,12 @@ process (INR reg) processor = newProcessor {flags = newFlags}
   where
     newReg = readRegister8 reg processor + 1
     newFlags = getIncDecFlags newReg (flags processor)
-    newProcessor = writeRegister reg newReg processor
+    newProcessor = writeRegister8 reg newReg processor
 process (DCR reg) processor = newProcessor {flags = newFlags}
   where
     newReg = readRegister8 reg processor - 1
     newFlags = getIncDecFlags newReg (flags processor)
-    newProcessor = writeRegister reg newReg processor
+    newProcessor = writeRegister8 reg newReg processor
+process (INX reg) processor = writeRegister16 reg newReg processor
+  where
+    newReg = readRegister16 reg processor + 1

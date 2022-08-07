@@ -18,10 +18,10 @@ data Instruction
   -- Increment/Decrement
   | INR Register8
   | DCR Register8
+  | INX Register16
   -- NYI BELOW THIS LINE
   | LXI Register16
   | STAX Register16
-  | INX Register16
   | MVI Register8
   | RLC
   | LDAX Register16
