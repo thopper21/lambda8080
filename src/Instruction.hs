@@ -8,6 +8,9 @@ import           Register
 
 data Instruction
   = NOP
+  -- Move, Load and Store
+  | MOV Register8
+        Register8
   -- Add
   | ADD Register8
   | ADC Register8
@@ -43,8 +46,6 @@ data Instruction
   | STC
   | LDA
   | CMC
-  | MOV Register8
-        Register8
   | HLT
   | ANA Register8
   | XRA Register8
