@@ -4,11 +4,11 @@ import           Data.IntMap.Lazy
 import           Data.Word
 
 data Flags = Flags
-  { z  :: Word8
-  , s  :: Word8
-  , p  :: Word8
-  , cy :: Word8
-  , ac :: Word8
+  { z  :: Bool
+  , s  :: Bool
+  , p  :: Bool
+  , cy :: Bool
+  , ac :: Bool
   }
 
 data Registers = Registers
