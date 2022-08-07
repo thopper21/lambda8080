@@ -12,6 +12,7 @@ data Instruction
   | ADD Register8
   | ADC Register8
   | ADI
+  | ACI
   | DAD Register16
   -- Subtract
   | SUB Register8
@@ -59,7 +60,6 @@ data Instruction
   | JZ
   | CZ
   | CALL
-  | ACI
   | RNC
   | JNC
   | OUT
