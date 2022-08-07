@@ -11,6 +11,7 @@ data Instruction
   -- Add
   | ADD Register8
   | ADC Register8
+  | ADI
   | DAD Register16
   -- Subtract
   | SUB Register8
@@ -52,7 +53,6 @@ data Instruction
   | JMP
   | CNZ
   | PUSH Register16
-  | ADI
   | RST Word8
   | RZ
   | RET

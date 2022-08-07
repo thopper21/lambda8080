@@ -58,6 +58,12 @@ readRegister16' high low processor =
 
 readMemory addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
 
+readImmediate processor = (result, newProcessor)
+  where
+    counter = readRegister16 PC processor
+    result = readMemory counter processor
+    newProcessor = writeRegister16 PC (counter + 1) processor
+
 writeRegister8 M value processor =
   writeMemory (readRegister16 HL processor) value processor
 writeRegister8 reg value processor =
@@ -125,6 +131,13 @@ process NOP processor = processor
 process (ADD from) processor = processBinaryArithmetic from (+) processor
 process (ADC from) processor =
   processBinaryArithmetic from (withCarry (+) processor) processor
+process ADI processor = newProcessor' {flags = newFlags }
+  where
+    left = readRegister8 A processor
+    (right, newProcessor) = readImmediate processor
+    result = fromIntegral left + fromIntegral right
+    newFlags = getArithmeticFlags result
+    newProcessor' = writeRegister8 A (fromIntegral result) processor
 process (SUB from) processor = processBinaryArithmetic from (-) processor
 process (SBB from) processor =
   processBinaryArithmetic from (withCarry (-) processor) processor
