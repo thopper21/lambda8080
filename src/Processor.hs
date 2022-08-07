@@ -5,7 +5,6 @@ import           Data.IntMap
 import           Data.Maybe
 import           Data.Word
 import           Instruction
-import           Register
 
 data Flags = Flags
   { z  :: Bool

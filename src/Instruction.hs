@@ -1,10 +1,30 @@
 module Instruction
   ( Instruction(..)
+  , Register8(..)
+  , Register16(..)
   , toInstruction
   ) where
 
 import           Data.Word
-import           Register
+
+data Register8
+  = A
+  | B
+  | C
+  | D
+  | E
+  | H
+  | L
+  | M
+  deriving (Show)
+
+data Register16
+  = BC
+  | DE
+  | HL
+  | PC
+  | SP
+  deriving (Show)
 
 data Instruction
   = NOP
