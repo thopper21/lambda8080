@@ -7,9 +7,10 @@ import           Data.Word
 import           Register
 
 data Instruction
-  = ADD Register8
+  = NOP
+  | ADD Register8
+  | SUB Register8
   -- NYI BELOW THIS LINE
-  | NOP
   | LXI Register16
   | STAX Register16
   | INX Register16
@@ -37,7 +38,6 @@ data Instruction
         Register8
   | HLT
   | ADC Register8
-  | SUB Register8
   | SBB Register8
   | ANA Register8
   | XRA Register8
