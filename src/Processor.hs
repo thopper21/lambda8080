@@ -139,3 +139,8 @@ process (INR reg) processor = newProcessor {flags = newFlags}
     newReg = readRegister8 reg processor + 1
     newFlags = getIncDecFlags newReg (flags processor)
     newProcessor = writeRegister reg newReg processor
+process (DCR reg) processor = newProcessor {flags = newFlags}
+  where
+    newReg = readRegister8 reg processor - 1
+    newFlags = getIncDecFlags newReg (flags processor)
+    newProcessor = writeRegister reg newReg processor

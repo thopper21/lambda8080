@@ -17,11 +17,11 @@ data Instruction
   | SBB Register8
   -- Increment/Decrement
   | INR Register8
+  | DCR Register8
   -- NYI BELOW THIS LINE
   | LXI Register16
   | STAX Register16
   | INX Register16
-  | DCR Register8
   | MVI Register8
   | RLC
   | LDAX Register16
