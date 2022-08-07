@@ -58,6 +58,7 @@ readMemory :: Word16 -> Processor -> Word8
 readMemory addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
 
 process :: Instruction -> Processor -> Processor
+process NOP processor = processor
 process (ADD from) processor =
   processor {flags = newFlags, registers = newRegisters}
   where
