@@ -81,6 +81,8 @@ process (ADD from) processor = processBinaryArithmetic from (+) processor
 process (SUB from) processor = processBinaryArithmetic from (-) processor
 process (ADC from) processor =
   processBinaryArithmetic from (withCarry (+) processor) processor
+process (SBB from) processor =
+  processBinaryArithmetic from (withCarry (-) processor) processor
 
 -- Use 16 bits here to easily check for the carry flag
 getArithmeticFlags :: Word16 -> Flags
