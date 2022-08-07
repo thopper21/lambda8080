@@ -182,6 +182,10 @@ process SHLD processor = writeMemory16 addr value newProcessor
   where
     value = readRegister16 HL processor
     (addr, newProcessor) = readImmediate16 processor
+process LHLD processor = writeRegister16 HL value newProcessor
+  where
+    (addr, newProcessor) = readImmediate16 processor
+    value = readMemory16 addr newProcessor
 process (INR reg) processor = newProcessor {flags = newFlags}
   where
     newReg = readRegister8 reg processor + 1

@@ -38,6 +38,7 @@ data Instruction
   | STA
   | LDA
   | SHLD
+  | LHLD
   -- Add
   | ADD Register8
   | ADC Register8
@@ -62,7 +63,6 @@ data Instruction
   | RAR
   | RIM
   | DAA
-  | LHLD
   | CMA
   | SIM
   | STC
