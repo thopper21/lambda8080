@@ -15,11 +15,12 @@ data Instruction
   -- Subtract
   | SUB Register8
   | SBB Register8
+  -- Increment/Decrement
+  | INR Register8
   -- NYI BELOW THIS LINE
   | LXI Register16
   | STAX Register16
   | INX Register16
-  | INR Register8
   | DCR Register8
   | MVI Register8
   | RLC

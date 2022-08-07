@@ -57,6 +57,26 @@ readRegister16' high low processor =
 readMemory :: Word16 -> Processor -> Word8
 readMemory addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
 
+writeRegister A value processor =
+  processor {registers = (registers processor) {a = value}}
+writeRegister B value processor =
+  processor {registers = (registers processor) {b = value}}
+writeRegister C value processor =
+  processor {registers = (registers processor) {c = value}}
+writeRegister D value processor =
+  processor {registers = (registers processor) {d = value}}
+writeRegister E value processor =
+  processor {registers = (registers processor) {e = value}}
+writeRegister H value processor =
+  processor {registers = (registers processor) {h = value}}
+writeRegister L value processor =
+  processor {registers = (registers processor) {l = value}}
+writeRegister M value processor =
+  writeMemory (readRegister16 HL processor) value processor
+
+writeMemory addr value processor =
+  processor {memory = insert (fromIntegral addr) value (memory processor)}
+
 processBinaryArithmetic ::
      Register8 -> (Word16 -> Word16 -> Word16) -> Processor -> Processor
 processBinaryArithmetic from op processor =
@@ -75,6 +95,24 @@ withCarry op processor left right =
     then left `op` right `op` 1
     else left `op` right
 
+-- Use 16 bits here to easily check for the carry flag
+getArithmeticFlags :: Word16 -> Flags
+getArithmeticFlags result =
+  Flags
+    { z = result .&. 0xff == 0
+    , s = testBit result 7
+    , p = even . popCount $ result .&. 0xff
+    , cy = result > 0xff
+    , ac = False
+    }
+
+getIncDecFlags result flags =
+  flags
+    { z = result == 0
+    , s = testBit result 7
+    , p = even . popCount $ result .&. 0xff
+    }
+
 process :: Instruction -> Processor -> Processor
 process NOP processor = processor
 process (ADD from) processor = processBinaryArithmetic from (+) processor
@@ -92,18 +130,12 @@ process (DAD from) processor =
     right = fromIntegral $ readRegister16 from processor
     result = left + right
     newFlags = (flags processor) {cy = result > 0xffff}
-    high = shift (result .& 0xff00) (-8)
+    high = shift (result .&. 0xff00) (-8)
     low = result .&. 0xff
     newRegisters =
       (registers processor) {h = fromIntegral high, l = fromIntegral low}
-
--- Use 16 bits here to easily check for the carry flag
-getArithmeticFlags :: Word16 -> Flags
-getArithmeticFlags result =
-  Flags
-    { z = result .&. 0xff == 0
-    , s = testBit result 7
-    , p = even . popCount $ result .&. 0xff
-    , cy = result > 0xff
-    , ac = False
-    }
+process (INR reg) processor = newProcessor {flags = newFlags}
+  where
+    newReg = readRegister8 reg processor + 1
+    newFlags = getIncDecFlags newReg (flags processor)
+    newProcessor = writeRegister reg newReg processor
