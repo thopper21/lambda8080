@@ -57,19 +57,30 @@ readRegister16' high low processor =
 readMemory :: Word16 -> Processor -> Word8
 readMemory addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
 
-processBinaryArithmetic :: Register8 -> (Word16 -> Word16 -> Word16) -> Processor -> Processor
-processBinaryArithmetic from op processor = processor {flags = newFlags, registers = newRegisters}
-    where
-        left = fromIntegral $ readRegister8 A processor
-        right = fromIntegral $ readRegister8 from processor
-        result = left `op` right
-        newFlags = getArithmeticFlags result
-        newRegisters = (registers processor) {a = fromIntegral result}
+processBinaryArithmetic ::
+     Register8 -> (Word16 -> Word16 -> Word16) -> Processor -> Processor
+processBinaryArithmetic from op processor =
+  processor {flags = newFlags, registers = newRegisters}
+  where
+    left = fromIntegral $ readRegister8 A processor
+    right = fromIntegral $ readRegister8 from processor
+    result = left `op` right
+    newFlags = getArithmeticFlags result
+    newRegisters = (registers processor) {a = fromIntegral result}
+
+withCarry ::
+     (Word16 -> Word16 -> Word16) -> Processor -> Word16 -> Word16 -> Word16
+withCarry op processor left right =
+  if cy . flags $ processor
+    then left `op` right `op` 1
+    else left `op` right
 
 process :: Instruction -> Processor -> Processor
 process NOP processor = processor
 process (ADD from) processor = processBinaryArithmetic from (+) processor
 process (SUB from) processor = processBinaryArithmetic from (-) processor
+process (ADC from) processor =
+  processBinaryArithmetic from (withCarry (+) processor) processor
 
 -- Use 16 bits here to easily check for the carry flag
 getArithmeticFlags :: Word16 -> Flags

@@ -9,6 +9,7 @@ import           Register
 data Instruction
   = NOP
   | ADD Register8
+  | ADC Register8
   | SUB Register8
   -- NYI BELOW THIS LINE
   | LXI Register16
@@ -37,7 +38,6 @@ data Instruction
   | MOV Register8
         Register8
   | HLT
-  | ADC Register8
   | SBB Register8
   | ANA Register8
   | XRA Register8
