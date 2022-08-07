@@ -2,6 +2,7 @@ module Processor where
 
 import           Data.Bits
 import           Data.IntMap
+import           Data.Maybe
 import           Data.Word
 import           Instruction
 import           Register
@@ -32,24 +33,39 @@ data Processor = Processor
   , memory    :: IntMap Word8
   }
 
-readRegister A = a
-readRegister B = b
-readRegister C = c
-readRegister D = d
-readRegister E = e
-readRegister H = h
-readRegister L = l
+readRegister8 A processor = a . registers $ processor
+readRegister8 B processor = b . registers $ processor
+readRegister8 C processor = c . registers $ processor
+readRegister8 D processor = d . registers $ processor
+readRegister8 E processor = e . registers $ processor
+readRegister8 H processor = h . registers $ processor
+readRegister8 L processor = l . registers $ processor
+readRegister8 M processor = readMemory (readRegister16 HL processor) processor
+
+readRegister16 BC = readRegister16' B C
+readRegister16 DE = readRegister16' D E
+readRegister16 HL = readRegister16' H L
+readRegister16 PC = pc . registers
+readRegister16 SP = sp . registers
+
+readRegister16' high low processor =
+  shift (fromIntegral highVal) 8 + fromIntegral lowVal
+  where
+    highVal = readRegister8 high processor
+    lowVal = readRegister8 low processor
+
+readMemory :: Word16 -> Processor -> Word8
+readMemory addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
 
 process :: Instruction -> Processor -> Processor
 process (ADD from) processor =
   processor {flags = newFlags, registers = newRegisters}
   where
-    left = fromIntegral $ a . registers $ processor
-    right = fromIntegral $ readRegister from . registers $ processor
+    left = fromIntegral $ readRegister8 A processor
+    right = fromIntegral $ readRegister8 from processor
     result = left + right
     newFlags = getArithmeticFlags result
-    oldRegisters = registers processor
-    newRegisters = oldRegisters {a = fromIntegral result}
+    newRegisters = (registers processor) {a = fromIntegral result}
 
 -- Use 16 bits here to easily check for the carry flag
 getArithmeticFlags :: Word16 -> Flags
