@@ -133,17 +133,17 @@ writeMemory16 addr value = do
   writeMemory8 addr low
   writeMemory8 (addr + 1) high
 
-processRegisterBinaryArithmetic ::
+registerBinaryArithmetic ::
      Register8 -> (Word16 -> Word16 -> Word16) -> State Processor ()
-processRegisterBinaryArithmetic = processBinaryArithmetic . readRegister8
+registerBinaryArithmetic = binaryArithmetic . readRegister8
 
-processImmediateBinaryArithmetic ::
+immediateBinaryArithmetic ::
      (Word16 -> Word16 -> Word16) -> State Processor ()
-processImmediateBinaryArithmetic = processBinaryArithmetic readImmediate8
+immediateBinaryArithmetic = binaryArithmetic readImmediate8
 
-processBinaryArithmetic ::
+binaryArithmetic ::
      State Processor Word8 -> (Word16 -> Word16 -> Word16) -> State Processor ()
-processBinaryArithmetic getter op = do
+binaryArithmetic getter op = do
   left <- readRegister8 A
   right <- getter
   let result = fromIntegral left `op` fromIntegral right
@@ -227,10 +227,10 @@ process (DCX reg) = do
   value <- readRegister16 reg
   let newValue = value - 1
   writeRegister16 reg newValue
-process (ADD from) = processRegisterBinaryArithmetic from (+)
-process (ADC from) = carry (+) >>= processRegisterBinaryArithmetic from
-process ADI = processImmediateBinaryArithmetic (+)
-process ACI = carry (+) >>= processImmediateBinaryArithmetic
+process (ADD from) = registerBinaryArithmetic from (+)
+process (ADC from) = carry (+) >>= registerBinaryArithmetic from
+process ADI = immediateBinaryArithmetic (+)
+process ACI = carry (+) >>= immediateBinaryArithmetic
 process (DAD from) = do
   left <- readRegister16 HL
   right <- readRegister16 from
@@ -238,7 +238,7 @@ process (DAD from) = do
   modify $ \processor ->
     processor {flags = (flags processor) {cy = result > 0xffff}}
   writeRegister16 HL (fromIntegral result)
-process (SUB from) = processRegisterBinaryArithmetic from (-)
-process (SBB from) = carry (-) >>= processRegisterBinaryArithmetic from
-process SUI = processImmediateBinaryArithmetic (-)
-process SBI = carry (-) >>= processImmediateBinaryArithmetic
+process (SUB from) = registerBinaryArithmetic from (-)
+process (SBB from) = carry (-) >>= registerBinaryArithmetic from
+process SUI = immediateBinaryArithmetic (-)
+process SBI = carry (-) >>= immediateBinaryArithmetic
