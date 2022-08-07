@@ -78,9 +78,9 @@ withCarry op processor left right =
 process :: Instruction -> Processor -> Processor
 process NOP processor = processor
 process (ADD from) processor = processBinaryArithmetic from (+) processor
-process (SUB from) processor = processBinaryArithmetic from (-) processor
 process (ADC from) processor =
   processBinaryArithmetic from (withCarry (+) processor) processor
+process (SUB from) processor = processBinaryArithmetic from (-) processor
 process (SBB from) processor =
   processBinaryArithmetic from (withCarry (-) processor) processor
 process (DAD from) processor =
@@ -92,7 +92,7 @@ process (DAD from) processor =
     right = fromIntegral $ readRegister16 from processor
     result = left + right
     newFlags = (flags processor) {cy = result > 0xffff}
-    high = shift result (-8) .&. 255
+    high = shift (result .& 0xff00) (-8)
     low = result .&. 0xff
     newRegisters =
       (registers processor) {h = fromIntegral high, l = fromIntegral low}
