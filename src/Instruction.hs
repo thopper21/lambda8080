@@ -24,6 +24,7 @@ data Register16
   | HL
   | PC
   | SP
+  | PSW
   deriving (Show)
 
 data Instruction
@@ -359,11 +360,11 @@ toInstruction code =
     0xee -> XRI
     0xef -> RST 5
     0xf0 -> RP
-    0xf1 -> POP SP
+    0xf1 -> POP PSW
     0xf2 -> JP
     0xf3 -> DI
     0xf4 -> CP
-    0xf5 -> PUSH SP
+    0xf5 -> PUSH PSW
     0xf6 -> ORI
     0xf7 -> RST 6
     0xf8 -> RM
