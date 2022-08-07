@@ -39,6 +39,7 @@ data Instruction
   | LDA
   | SHLD
   | LHLD
+  | XCHG
   -- Add
   | ADD Register8
   | ADC Register8
@@ -100,7 +101,6 @@ data Instruction
   | RPE
   | PCHL
   | JPE
-  | XCHG
   | CPE
   | XRI
   | RP
