@@ -160,30 +160,28 @@ withCarry op = do
       then \left right -> left `op` right `op` 1
       else op
 
+setFlags :: (Flags -> Flags) -> State Processor ()
+setFlags update =
+  modify $ \processor -> processor {flags = update (flags processor)}
+
 -- Force 16 bits here to easily check for the carry flag
 updateArithmeticFlags :: Word16 -> State Processor ()
 updateArithmeticFlags result =
-  modify $ \processor ->
-    processor
-      { flags =
-          (flags processor)
-            { z = result .&. 0xff == 0
-            , s = testBit result 7
-            , p = even . popCount $ result .&. 0xff
-            , cy = result > 0xff
-            }
+  setFlags $ \flags ->
+    flags
+      { z = result .&. 0xff == 0
+      , s = testBit result 7
+      , p = even . popCount $ result .&. 0xff
+      , cy = result > 0xff
       }
 
 updateIncFlags :: Word8 -> State Processor ()
 updateIncFlags result =
-  modify $ \processor ->
-    processor
-      { flags =
-          (flags processor)
-            { z = result == 0
-            , s = testBit result 7
-            , p = even . popCount $ result .&. 0xff
-            }
+  setFlags $ \flags ->
+    flags
+      { z = result == 0
+      , s = testBit result 7
+      , p = even . popCount $ result .&. 0xff
       }
 
 process :: Instruction -> State Processor ()
