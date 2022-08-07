@@ -163,3 +163,6 @@ process (DCR reg) processor = newProcessor {flags = newFlags}
 process (INX reg) processor = writeRegister16 reg newReg processor
   where
     newReg = readRegister16 reg processor + 1
+process (DCX reg) processor = writeRegister16 reg newReg processor
+  where
+    newReg = readRegister16 reg processor - 1

@@ -19,13 +19,13 @@ data Instruction
   | INR Register8
   | DCR Register8
   | INX Register16
+  | DCX Register16
   -- NYI BELOW THIS LINE
   | LXI Register16
   | STAX Register16
   | MVI Register8
   | RLC
   | LDAX Register16
-  | DCX Register16
   | RRC
   | RAL
   | RAR
