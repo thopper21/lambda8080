@@ -59,11 +59,16 @@ to16 high low = shift (fromIntegral high) 8 .|. fromIntegral low
 
 readMemory addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
 
-readImmediate processor = (result, newProcessor)
+readImmediate8 processor = (result, newProcessor)
   where
     counter = readRegister16 PC processor
     result = readMemory counter processor
     newProcessor = writeRegister16 PC (counter + 1) processor
+
+readImmediate16 processor = (to16 high low, newProcessor')
+  where
+    (low, newProcessor) = readImmediate8 processor
+    (high, newProcessor') = readImmediate8 newProcessor
 
 writeRegister8 M value processor =
   writeMemory (readRegister16 HL processor) value processor
@@ -107,7 +112,7 @@ processBinaryArithmetic from op processor =
 processImmediateBinaryArithmetic op processor = newProcessor' {flags = newFlags}
   where
     left = readRegister8 A processor
-    (right, newProcessor) = readImmediate processor
+    (right, newProcessor) = readImmediate8 processor
     result = fromIntegral left `op` fromIntegral right
     newFlags = getArithmeticFlags result
     newProcessor' = writeRegister8 A (fromIntegral result) newProcessor
@@ -141,11 +146,10 @@ process (MOV to from) processor =
   writeRegister8 to (readRegister8 from processor) processor
 process (MVI to) processor = writeRegister8 to value newProcessor
   where
-    (value, newProcessor) = readImmediate processor
-process (LXI to) processor = writeRegister16 to (to16 high low) processor
+    (value, newProcessor) = readImmediate8 processor
+process (LXI to) processor = writeRegister16 to addr newProcessor
   where
-    (low, newProcessor) = readImmediate processor
-    (high, newProcessor') = readImmediate newProcessor
+    (addr, newProcessor) = readImmediate16 processor
 process (STAX to) processor = writeMemory addr value processor
   where
     addr = readRegister16 to processor
@@ -153,17 +157,14 @@ process (STAX to) processor = writeMemory addr value processor
 process (LDAX from) processor = writeRegister8 A value processor
   where
     value = readMemory (readRegister16 from processor) processor
-process STA processor = writeMemory addr value newProcessor'
+process STA processor = writeMemory addr value newProcessor
   where
-    (low, newProcessor) = readImmediate processor
-    (high, newProcessor') = readImmediate newProcessor
-    value = readRegister8 A newProcessor'
-    addr = to16 high low
-process LDA processor = writeRegister8 A value newProcessor'
+    (addr, newProcessor) = readImmediate16 processor
+    value = readRegister8 A newProcessor
+process LDA processor = writeRegister8 A value newProcessor
   where
-    (low, newProcessor) = readImmediate processor
-    (high, newProcessor') = readImmediate newProcessor
-    value = readMemory (to16 high low) newProcessor'
+    (addr, newProcessor) = readImmediate16 processor
+    value = readMemory addr newProcessor
 process (INR reg) processor = newProcessor {flags = newFlags}
   where
     newReg = readRegister8 reg processor + 1
