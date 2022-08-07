@@ -54,6 +54,7 @@ readRegister16' high low processor = to16 highVal lowVal
     highVal = readRegister8 high processor
     lowVal = readRegister8 low processor
 
+to16 :: Word8 -> Word8 -> Word16
 to16 high low = shift (fromIntegral high) 8 .|. fromIntegral low
 
 readMemory addr = fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
@@ -152,6 +153,12 @@ process (STAX to) processor = writeMemory addr value processor
 process (LDAX from) processor = writeRegister8 A value processor
   where
     value = readMemory (readRegister16 from processor) processor
+process STA processor = writeMemory addr value newProcessor'
+  where
+    (low, newProcessor) = readImmediate processor
+    (high, newProcessor') = readImmediate newProcessor
+    value = readRegister8 A newProcessor'
+    addr = to16 high low
 process (INR reg) processor = newProcessor {flags = newFlags}
   where
     newReg = readRegister8 reg processor + 1
