@@ -177,13 +177,16 @@ updateIncFlags result =
       , p = even . popCount $ result .&. 0xff
       }
 
+doIf :: State Processor () -> (Flags -> Bool) -> State Processor ()
+doIf action cond = do
+  isSet <- gets $ cond . flags
+  when isSet action
+
 jump :: State Processor ()
 jump = readImmediate16 >>= writeRegister16 PC
 
 jumpIf :: (Flags -> Bool) -> State Processor ()
-jumpIf cond = do
-  isSet <- gets $ cond . flags
-  when isSet jump
+jumpIf = doIf jump
 
 call :: State Processor ()
 call = do
@@ -196,9 +199,7 @@ call = do
   writeRegister16 PC newCounter
 
 callIf :: (Flags -> Bool) -> State Processor ()
-callIf cond = do
-  isSet <- gets $ cond . flags
-  when isSet call
+callIf = doIf call
 
 ret :: State Processor ()
 ret = do
@@ -209,9 +210,7 @@ ret = do
   writeRegister16 PC newCounter
 
 retIf :: (Flags -> Bool) -> State Processor ()
-retIf cond = do
-  isSet <- gets $ cond . flags
-  when isSet ret
+retIf = doIf ret
 
 process :: Instruction -> State Processor ()
 process NOP = return ()
