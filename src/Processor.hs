@@ -240,6 +240,12 @@ logicalRegister = logical . readRegister8
 logicalImmediate :: (Word8 -> Word8 -> Word8) -> State Processor ()
 logicalImmediate = logical readImmediate8
 
+cmp :: State Processor Word8 -> State Processor ()
+cmp getter = do
+  left <- readRegister8 A
+  right <- getter
+  updateArithmeticFlags (fromIntegral left - fromIntegral right)
+
 process :: Instruction -> State Processor ()
 process NOP = return ()
 process (MOV to from) = readRegister8 from >>= writeRegister8 to
@@ -330,10 +336,8 @@ process SBI = carry (-) >>= immediateBinaryArithmetic
 process (ANA from) = logicalRegister from (.&.)
 process (XRA from) = logicalRegister from xor
 process (ORA from) = logicalRegister from (.|.)
-process (CMP from) = do
-  left <- readRegister8 A
-  right <- readRegister8 from
-  updateArithmeticFlags (fromIntegral left - fromIntegral right)
+process (CMP from) = cmp $ readRegister8 from
 process ANI = logicalImmediate (.&.)
 process XRI = logicalImmediate xor
 process ORI = logicalImmediate (.|.)
+process CPI = cmp readImmediate8
