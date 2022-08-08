@@ -347,3 +347,9 @@ process RLC = do
   let result = rotate input 1
   setFlags $ \flags -> flags {cy = carry}
   writeRegister8 A result
+process RRC = do
+  input <- readRegister8 A
+  let carry = testBit input 0
+  let result = rotate input (-1)
+  setFlags $ \flags -> flags {cy = carry}
+  writeRegister8 A result

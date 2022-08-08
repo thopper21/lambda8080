@@ -100,8 +100,8 @@ data Instruction
   | CPI
   -- Rotate
   | RLC
-  -- NYI BELOW THIS LINE
   | RRC
+  -- NYI BELOW THIS LINE
   | RAL
   | RAR
   | RIM
