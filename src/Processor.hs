@@ -177,10 +177,13 @@ updateIncFlags result =
       , p = even . popCount $ result .&. 0xff
       }
 
+jump :: State Processor ()
+jump = readImmediate16 >>= writeRegister16 PC
+
 jumpIf :: (Flags -> Bool) -> State Processor ()
 jumpIf cond = do
   isSet <- gets $ cond . flags
-  when isSet $ readImmediate16 >>= writeRegister16 PC
+  when isSet jump
 
 process :: Instruction -> State Processor ()
 process NOP = return ()
@@ -207,7 +210,7 @@ process XCHG = do
   oldHL <- readRegister16 HL
   writeRegister16 DE oldHL
   writeRegister16 HL oldDE
-process JMP = jumpIf $ const True
+process JMP = jump
 process JC = jumpIf cy
 process JNC = jumpIf $ not . cy
 process JZ = jumpIf z
