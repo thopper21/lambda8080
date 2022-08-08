@@ -60,6 +60,8 @@ data Instruction
   | CM
   | CPE
   | CPO
+  -- Return
+  | RET
   -- Add
   | ADD Register8
   | ADC Register8
@@ -98,7 +100,6 @@ data Instruction
   | PUSH Register16
   | RST Word8
   | RZ
-  | RET
   | RNC
   | OUT
   | RC

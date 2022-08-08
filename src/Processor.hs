@@ -200,6 +200,14 @@ callIf cond = do
   isSet <- gets $ cond . flags
   when isSet call
 
+ret :: State Processor ()
+ret = do
+  currentStack <- readRegister16 SP
+  newCounter <- readMemory16 currentStack
+  let newStack = currentStack + 2
+  writeRegister16 SP newStack
+  writeRegister16 PC newCounter
+
 process :: Instruction -> State Processor ()
 process NOP = return ()
 process (MOV to from) = readRegister8 from >>= writeRegister8 to
@@ -244,6 +252,7 @@ process CP = callIf $ not . s
 process CM = callIf s
 process CPE = callIf p
 process CPO = callIf $ not . p
+process RET = ret
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1
