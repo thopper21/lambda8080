@@ -90,6 +90,7 @@ data Instruction
   | SBI
   -- Logical
   | ANA Register8
+  | XRA Register8
   -- NYI BELOW THIS LINE
   | LXI Register16
   | RLC
@@ -103,7 +104,6 @@ data Instruction
   | STC
   | CMC
   | HLT
-  | XRA Register8
   | ORA Register8
   | CMP Register8
   | POP Register16

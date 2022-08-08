@@ -225,6 +225,14 @@ ret = do
 retIf :: (Flags -> Bool) -> State Processor ()
 retIf = doIf ret
 
+logical :: Register8 -> (Word8 -> Word8 -> Word8) -> State Processor ()
+logical from op = do
+  left <- readRegister8 A
+  right <- readRegister8 from
+  let result = left `op` right
+  updateLogicalFlags result
+  writeRegister8 A result
+
 process :: Instruction -> State Processor ()
 process NOP = return ()
 process (MOV to from) = readRegister8 from >>= writeRegister8 to
@@ -312,9 +320,5 @@ process (SUB from) = registerBinaryArithmetic from (-)
 process (SBB from) = carry (-) >>= registerBinaryArithmetic from
 process SUI = immediateBinaryArithmetic (-)
 process SBI = carry (-) >>= immediateBinaryArithmetic
-process (ANA from) = do
-  left <- readRegister8 A
-  right <- readRegister8 from
-  let result = left .&. right
-  updateLogicalFlags result
-  writeRegister8 A result
+process (ANA from) = logical from (.&.)
+process (XRA from) = logical from xor
