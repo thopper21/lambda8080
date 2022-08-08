@@ -185,6 +185,21 @@ jumpIf cond = do
   isSet <- gets $ cond . flags
   when isSet jump
 
+call :: State Processor ()
+call = do
+  newCounter <- readImmediate16
+  currentCounter <- readRegister16 PC
+  currentStack <- readRegister16 SP
+  let newStack = currentStack - 2
+  writeMemory16 newStack currentCounter
+  writeRegister16 SP newStack
+  writeRegister16 PC newCounter
+
+callIf :: (Flags -> Bool) -> State Processor ()
+callIf cond = do
+    isSet <- gets $ cond . flags
+    when isSet call
+
 process :: Instruction -> State Processor ()
 process NOP = return ()
 process (MOV to from) = readRegister8 from >>= writeRegister8 to
@@ -220,14 +235,8 @@ process JM = jumpIf s
 process JPE = jumpIf p
 process JPO = jumpIf $ not . p
 process PCHL = readRegister16 HL >>= writeRegister16 PC
-process CALL = do
-    newCounter <- readImmediate16
-    currentCounter <- readRegister16 PC
-    currentStack <- readRegister16 SP
-    let newStack = currentStack - 2
-    writeMemory16 newStack currentCounter
-    writeRegister16 SP newStack
-    writeRegister16 PC newCounter
+process CALL = call
+process CC = callIf cy
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1

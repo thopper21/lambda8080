@@ -52,6 +52,7 @@ data Instruction
   | PCHL
   -- Call
   | CALL
+  | CC
   -- Add
   | ADD Register8
   | ADC Register8
@@ -98,7 +99,6 @@ data Instruction
   | CNC
   | RC
   | IN
-  | CC
   | RPO
   | XTHL
   | CPO
