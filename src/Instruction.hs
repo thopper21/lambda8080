@@ -57,6 +57,9 @@ data Instruction
   | CZ
   | CNZ
   | CP
+  | CM
+  | CPE
+  | CPO
   -- Add
   | ADD Register8
   | ADC Register8
@@ -102,10 +105,8 @@ data Instruction
   | IN
   | RPO
   | XTHL
-  | CPO
   | ANI
   | RPE
-  | CPE
   | XRI
   | RP
   | DI
@@ -114,7 +115,6 @@ data Instruction
   | SPHL
   | JM
   | EI
-  | CM
   | CPI
   deriving (Show)
 
