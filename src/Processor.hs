@@ -356,3 +356,10 @@ process RAL = do
     let result = carryOp (shift input 1) 0
     setFlags $ \flags -> flags {cy = testBit input 7}
     writeRegister8 A result
+process RAR = do
+    input <- readRegister8 A
+    oldCarry <- gets $ cy . flags
+    let carryOp = if oldCarry then setBit else clearBit
+    let result = carryOp (shift input (-1)) 7
+    setFlags $ \flags -> flags {cy = testBit input 0}
+    writeRegister8 A result

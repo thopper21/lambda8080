@@ -101,9 +101,9 @@ data Instruction
   -- Rotate
   | RLC
   | RRC
-  -- NYI BELOW THIS LINE
   | RAL
   | RAR
+  -- NYI BELOW THIS LINE
   | RIM
   | DAA
   | CMA
