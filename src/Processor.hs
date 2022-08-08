@@ -323,3 +323,7 @@ process SBI = carry (-) >>= immediateBinaryArithmetic
 process (ANA from) = logical from (.&.)
 process (XRA from) = logical from xor
 process (ORA from) = logical from (.|.)
+process (CMP from) = do
+  left <- readRegister8 A
+  right <- readRegister8 from
+  updateArithmeticFlags (fromIntegral left - fromIntegral right)

@@ -92,6 +92,7 @@ data Instruction
   | ANA Register8
   | XRA Register8
   | ORA Register8
+  | CMP Register8
   -- NYI BELOW THIS LINE
   | LXI Register16
   | RLC
@@ -105,7 +106,6 @@ data Instruction
   | STC
   | CMC
   | HLT
-  | CMP Register8
   | POP Register16
   | PUSH Register16
   | OUT
