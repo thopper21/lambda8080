@@ -216,6 +216,7 @@ process JP = jumpIf $ not . s
 process JM = jumpIf s
 process JPE = jumpIf p
 process JPO = jumpIf $ not . p
+process PCHL = readRegister16 HL >>= writeRegister16 PC
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1

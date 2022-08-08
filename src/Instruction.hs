@@ -49,6 +49,7 @@ data Instruction
   | JP
   | JPE
   | JPO
+  | PCHL
   -- Add
   | ADD Register8
   | ADC Register8
@@ -102,7 +103,6 @@ data Instruction
   | CPO
   | ANI
   | RPE
-  | PCHL
   | CPE
   | XRI
   | RP
