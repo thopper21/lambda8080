@@ -50,6 +50,8 @@ data Instruction
   | JPE
   | JPO
   | PCHL
+  -- Call
+  | CALL
   -- Add
   | ADD Register8
   | ADC Register8
@@ -91,7 +93,6 @@ data Instruction
   | RZ
   | RET
   | CZ
-  | CALL
   | RNC
   | OUT
   | CNC
