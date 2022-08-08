@@ -93,6 +93,7 @@ data Instruction
   | XRA Register8
   | ORA Register8
   | CMP Register8
+  | ANI
   -- NYI BELOW THIS LINE
   | LXI Register16
   | RLC
@@ -111,7 +112,6 @@ data Instruction
   | OUT
   | IN
   | XTHL
-  | ANI
   | XRI
   | DI
   | ORI
