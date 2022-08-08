@@ -95,6 +95,7 @@ data Instruction
   | CMP Register8
   | ANI
   | XRI
+  | ORI
   -- NYI BELOW THIS LINE
   | LXI Register16
   | RLC
@@ -114,7 +115,6 @@ data Instruction
   | IN
   | XTHL
   | DI
-  | ORI
   | SPHL
   | JM
   | EI

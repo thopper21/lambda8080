@@ -225,13 +225,14 @@ ret = do
 retIf :: (Flags -> Bool) -> State Processor ()
 retIf = doIf ret
 
-logical :: State Processor Word8 -> (Word8 -> Word8 -> Word8) -> State Processor ()
+logical ::
+     State Processor Word8 -> (Word8 -> Word8 -> Word8) -> State Processor ()
 logical getter op = do
-    left <- readRegister8 A
-    right <- getter
-    let result = left `op` right
-    updateLogicalFlags result
-    writeRegister8 A result
+  left <- readRegister8 A
+  right <- getter
+  let result = left `op` right
+  updateLogicalFlags result
+  writeRegister8 A result
 
 logicalRegister :: Register8 -> (Word8 -> Word8 -> Word8) -> State Processor ()
 logicalRegister = logical . readRegister8
@@ -335,3 +336,4 @@ process (CMP from) = do
   updateArithmeticFlags (fromIntegral left - fromIntegral right)
 process ANI = logicalImmediate (.&.)
 process XRI = logicalImmediate xor
+process ORI = logicalImmediate (.|.)
