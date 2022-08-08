@@ -241,6 +241,7 @@ process CNC = callIf $ not . cy
 process CZ = callIf z
 process CNZ = callIf $ not . z
 process CP = jumpIf $ not . s
+process CM = jumpIf s
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1
