@@ -246,6 +246,24 @@ cmp getter = do
   right <- getter
   updateArithmeticFlags (fromIntegral left - fromIntegral right)
 
+rot :: Int -> (Word8 -> Int -> Word8) -> State Processor ()
+rot carryBit op = do
+  input <- readRegister8 A
+  setFlags $ \flags -> flags {cy = testBit input carryBit}
+  writeRegister8 A $ op input 1
+
+rotCarry :: Int -> Int -> (Word8 -> Int -> Word8) -> State Processor ()
+rotCarry carryBit uncarryBit op = do
+  input <- readRegister8 A
+  oldCarry <- gets $ cy . flags
+  let carryOp =
+        if oldCarry
+          then setBit
+          else clearBit
+  let result = carryOp (op input 1) uncarryBit
+  setFlags $ \flags -> flags {cy = testBit input carryBit}
+  writeRegister8 A result
+
 process :: Instruction -> State Processor ()
 process NOP = return ()
 process (MOV to from) = readRegister8 from >>= writeRegister8 to
@@ -341,25 +359,7 @@ process ANI = logicalImmediate (.&.)
 process XRI = logicalImmediate xor
 process ORI = logicalImmediate (.|.)
 process CPI = cmp readImmediate8
-process RLC = do
-  input <- readRegister8 A
-  setFlags $ \flags -> flags {cy = testBit input 7}
-  writeRegister8 A $ rotate input 1
-process RRC = do
-  input <- readRegister8 A
-  setFlags $ \flags -> flags {cy = testBit input 0}
-  writeRegister8 A $ rotate input (-1)
-process RAL = do
-    input <- readRegister8 A
-    oldCarry <- gets $ cy . flags
-    let carryOp = if oldCarry then setBit else clearBit
-    let result = carryOp (shift input 1) 0
-    setFlags $ \flags -> flags {cy = testBit input 7}
-    writeRegister8 A result
-process RAR = do
-    input <- readRegister8 A
-    oldCarry <- gets $ cy . flags
-    let carryOp = if oldCarry then setBit else clearBit
-    let result = carryOp (shift input (-1)) 7
-    setFlags $ \flags -> flags {cy = testBit input 0}
-    writeRegister8 A result
+process RLC = rot 7 rotateL
+process RRC = rot 0 rotateR
+process RAL = rotCarry 7 0 shiftL
+process RAR = rotCarry 0 7 shiftR
