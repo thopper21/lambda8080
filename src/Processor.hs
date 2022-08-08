@@ -208,6 +208,11 @@ ret = do
   writeRegister16 SP newStack
   writeRegister16 PC newCounter
 
+retIf :: (Flags -> Bool) -> State Processor ()
+retIf cond = do
+  isSet <- gets $ cond . flags
+  when isSet ret
+
 process :: Instruction -> State Processor ()
 process NOP = return ()
 process (MOV to from) = readRegister8 from >>= writeRegister8 to
@@ -253,6 +258,14 @@ process CM = callIf s
 process CPE = callIf p
 process CPO = callIf $ not . p
 process RET = ret
+process RC = retIf cy
+process RNC = retIf $ not . cy
+process RZ = retIf z
+process RNZ = retIf $ not . z
+process RP = retIf $ not . s
+process RM = retIf s
+process RPE = retIf p
+process RPO = retIf $ not . p
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1

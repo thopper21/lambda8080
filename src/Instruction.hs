@@ -62,6 +62,14 @@ data Instruction
   | CPO
   -- Return
   | RET
+  | RC
+  | RNC
+  | RZ
+  | RNZ
+  | RP
+  | RM
+  | RPE
+  | RPO
   -- Add
   | ADD Register8
   | ADC Register8
@@ -95,24 +103,16 @@ data Instruction
   | XRA Register8
   | ORA Register8
   | CMP Register8
-  | RNZ
   | POP Register16
   | PUSH Register16
   | RST Word8
-  | RZ
-  | RNC
   | OUT
-  | RC
   | IN
-  | RPO
   | XTHL
   | ANI
-  | RPE
   | XRI
-  | RP
   | DI
   | ORI
-  | RM
   | SPHL
   | JM
   | EI
