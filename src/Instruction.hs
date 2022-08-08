@@ -48,6 +48,7 @@ data Instruction
   | JNZ
   | JP
   | JPE
+  | JPO
   -- Add
   | ADD Register8
   | ADC Register8
@@ -97,7 +98,6 @@ data Instruction
   | IN
   | CC
   | RPO
-  | JPO
   | XTHL
   | CPO
   | ANI
