@@ -212,6 +212,7 @@ process JC = jumpIf cy
 process JNC = jumpIf $ not . cy
 process JZ = jumpIf z
 process JNZ = jumpIf $ not . z
+process JP = jumpIf p
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1

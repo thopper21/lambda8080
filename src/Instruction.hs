@@ -46,6 +46,7 @@ data Instruction
   | JNC
   | JZ
   | JNZ
+  | JP
   -- Add
   | ADD Register8
   | ADC Register8
@@ -105,7 +106,6 @@ data Instruction
   | CPE
   | XRI
   | RP
-  | JP
   | DI
   | CP
   | ORI
