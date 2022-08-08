@@ -40,6 +40,8 @@ data Instruction
   | SHLD
   | LHLD
   | XCHG
+  -- Jump
+  | JMP
   -- Add
   | ADD Register8
   | ADC Register8
@@ -76,7 +78,6 @@ data Instruction
   | RNZ
   | POP Register16
   | JNZ
-  | JMP
   | CNZ
   | PUSH Register16
   | RST Word8
