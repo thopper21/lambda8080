@@ -33,6 +33,7 @@ data Instruction
   | MOV Register8
         Register8
   | MVI Register8
+  | LXI Register16
   | STAX Register16
   | LDAX Register16
   | STA
@@ -96,9 +97,10 @@ data Instruction
   | ANI
   | XRI
   | ORI
-  -- NYI BELOW THIS LINE
-  | LXI Register16
+  | CPI
+  -- Rotate
   | RLC
+  -- NYI BELOW THIS LINE
   | RRC
   | RAL
   | RAR
@@ -118,7 +120,6 @@ data Instruction
   | SPHL
   | JM
   | EI
-  | CPI
   deriving (Show)
 
 toInstruction :: Word8 -> Instruction
