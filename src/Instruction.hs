@@ -107,9 +107,9 @@ data Instruction
   -- Special
   | CMA
   | STC
+  | CMC
   -- NYI BELOW THIS LINE
   | DAA
-  | CMC
   | HLT
   | POP Register16
   | PUSH Register16

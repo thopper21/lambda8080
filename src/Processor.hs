@@ -366,5 +366,5 @@ process RAR = rotCarry 0 7 shiftR
 process CMA = (complement <$> readRegister8 A) >>= writeRegister8 A
 process STC = setFlags $ \flags -> flags {cy = True}
 process CMC = do
-    carry <- gets $ cy . flags
-    setFlags $ \flags -> flags {cy = not carry}
+  carry <- gets $ cy . flags
+  setFlags $ \flags -> flags {cy = not carry}
