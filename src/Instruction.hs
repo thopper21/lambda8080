@@ -43,6 +43,7 @@ data Instruction
   | XCHG
   -- Stack
   | PUSH Register16
+  | POP Register16
   -- Jump
   | JMP
   | JC
@@ -113,7 +114,6 @@ data Instruction
   -- NYI BELOW THIS LINE
   | DAA
   | HLT
-  | POP Register16
   | OUT
   | IN
   | XTHL

@@ -121,15 +121,9 @@ toWriter L value registers = registers {l = value}
 flagsFrom :: Word8 -> State Processor ()
 flagsFrom value =
   setFlags $
-  const
-    Flags
-      { z = val 6
-      , s = val 7
-      , p = val 2
-      , cy = val 0
-      , ac = val 4
-      }
-    where val = testBit value
+  const Flags {z = val 6, s = val 7, p = val 2, cy = val 0, ac = val 4}
+  where
+    val = testBit value
 
 writeRegister16 :: Register16 -> Word16 -> State Processor ()
 writeRegister16 BC value = writeRegister16' B C value
@@ -254,13 +248,15 @@ call = readImmediate16 >>= callAt
 callIf :: (Flags -> Bool) -> State Processor ()
 callIf = doIf call
 
+pop :: State Processor Word16
+pop = do
+  stack <- readRegister16 SP
+  value <- readMemory16 stack
+  writeRegister16 SP (stack + 2)
+  return value
+
 ret :: State Processor ()
-ret = do
-  currentStack <- readRegister16 SP
-  newCounter <- readMemory16 currentStack
-  let newStack = currentStack + 2
-  writeRegister16 SP newStack
-  writeRegister16 PC newCounter
+ret = pop >>= writeRegister16 PC
 
 retIf :: (Flags -> Bool) -> State Processor ()
 retIf = doIf ret
@@ -330,6 +326,7 @@ process XCHG = do
   writeRegister16 DE oldHL
   writeRegister16 HL oldDE
 process (PUSH from) = readRegister16 from >>= push
+process (POP to) = pop >>= writeRegister16 to
 process JMP = jump
 process JC = jumpIf cy
 process JNC = jumpIf $ not . cy
