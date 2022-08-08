@@ -322,3 +322,4 @@ process SUI = immediateBinaryArithmetic (-)
 process SBI = carry (-) >>= immediateBinaryArithmetic
 process (ANA from) = logical from (.&.)
 process (XRA from) = logical from xor
+process (ORA from) = logical from (.|.)
