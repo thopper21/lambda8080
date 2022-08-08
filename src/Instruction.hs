@@ -45,6 +45,7 @@ data Instruction
   | JC
   | JNC
   | JZ
+  | JNZ
   -- Add
   | ADD Register8
   | ADC Register8
@@ -80,7 +81,6 @@ data Instruction
   | CMP Register8
   | RNZ
   | POP Register16
-  | JNZ
   | CNZ
   | PUSH Register16
   | RST Word8
