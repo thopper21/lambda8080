@@ -343,13 +343,16 @@ process ORI = logicalImmediate (.|.)
 process CPI = cmp readImmediate8
 process RLC = do
   input <- readRegister8 A
-  let carry = testBit input 7
-  let result = rotate input 1
-  setFlags $ \flags -> flags {cy = carry}
-  writeRegister8 A result
+  setFlags $ \flags -> flags {cy = testBit input 7}
+  writeRegister8 A $ rotate input 1
 process RRC = do
   input <- readRegister8 A
-  let carry = testBit input 0
-  let result = rotate input (-1)
-  setFlags $ \flags -> flags {cy = carry}
-  writeRegister8 A result
+  setFlags $ \flags -> flags {cy = testBit input 0}
+  writeRegister8 A $ rotate input (-1)
+process RAL = do
+    input <- readRegister8 A
+    oldCarry <- gets $ cy . flags
+    let carryOp = if oldCarry then setBit else clearBit
+    let result = carryOp (shift input 1) 0
+    setFlags $ \flags -> flags {cy = testBit input 7}
+    writeRegister8 A result
