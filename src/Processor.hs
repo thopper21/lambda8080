@@ -7,6 +7,13 @@ import           Data.Maybe
 import           Data.Word
 import           Instruction
 
+data Flag
+  = Z
+  | S
+  | P
+  | CY
+  | AC
+
 data Flags = Flags
   { z  :: Bool
   , s  :: Bool
@@ -28,10 +35,34 @@ data Registers = Registers
   }
 
 data Processor = Processor
-  { flags     :: Flags
+  { flags     :: Word8
   , registers :: Registers
   , memory    :: IntMap Word8
   }
+
+flagBit :: Flag -> Int
+flagBit Z  = 6
+flagBit S  = 7
+flagBit P  = 2
+flagBit CY = 0
+flagBit AC = 4
+
+getFlag :: Flag -> State Processor Bool
+getFlag flag = do
+  flags <- gets flags
+  return $ testBit flags (flagBit flag)
+
+assignBit :: Bool -> Word8 -> Int -> Word8
+assignBit flag =
+  if flag
+    then setBit
+    else clearBit
+
+setFlag :: Flag -> Bool -> State Processor ()
+setFlag flag cond = do
+  flags <- gets flags
+  let newFlags = assignBit cond flags (flagBit flag)
+  modify $ \processor -> processor {flags = newFlags}
 
 readRegister8 :: Register8 -> State Processor Word8
 readRegister8 M = do
@@ -47,37 +78,16 @@ toReader E = e
 toReader H = h
 toReader L = l
 
-getFlag :: (Flags -> Bool) -> State Processor Bool
-getFlag getter = gets $ getter . flags
-
-flagsTo :: State Processor Word8
-flagsTo = do
-  isZ <- getFlag z
-  isS <- getFlag s
-  isP <- getFlag p
-  isCY <- getFlag cy
-  isAC <- getFlag ac
-  let op b =
-        if b
-          then flip setBit
-          else flip clearBit
-  return $ op isZ 6 . op isS 7 . op isP 2 . op isCY 0 . op isAC 4 $ zeroBits
-
 readRegister16 :: Register16 -> State Processor Word16
-readRegister16 BC = readRegister16' B C
-readRegister16 DE = readRegister16' D E
-readRegister16 HL = readRegister16' H L
-readRegister16 PC = gets $ pc . registers
-readRegister16 SP = gets $ sp . registers
-readRegister16 PSW = do
-  high <- readRegister8 A
-  to16 high <$> flagsTo
+readRegister16 BC  = readRegister16' B C
+readRegister16 DE  = readRegister16' D E
+readRegister16 HL  = readRegister16' H L
+readRegister16 PC  = gets $ pc . registers
+readRegister16 SP  = gets $ sp . registers
+readRegister16 PSW = liftM2 to16 (readRegister8 A) (gets flags)
 
 readRegister16' :: Register8 -> Register8 -> State Processor Word16
-readRegister16' high low = do
-  highVal <- readRegister8 high
-  lowVal <- readRegister8 low
-  return $ to16 highVal lowVal
+readRegister16' high low = liftM2 to16 (readRegister8 high) (readRegister8 low)
 
 to16 :: Word8 -> Word8 -> Word16
 to16 high low = shift (fromIntegral high) 8 .|. fromIntegral low
@@ -118,13 +128,6 @@ toWriter E value registers = registers {e = value}
 toWriter H value registers = registers {h = value}
 toWriter L value registers = registers {l = value}
 
-flagsFrom :: Word8 -> State Processor ()
-flagsFrom value =
-  setFlags $
-  const Flags {z = val 6, s = val 7, p = val 2, cy = val 0, ac = val 4}
-  where
-    val = testBit value
-
 writeRegister16 :: Register16 -> Word16 -> State Processor ()
 writeRegister16 BC value = writeRegister16' B C value
 writeRegister16 DE value = writeRegister16' D E value
@@ -138,7 +141,7 @@ writeRegister16 SP value =
 writeRegister16 PSW value = do
   let (high, low) = from16 value
   writeRegister8 A high
-  flagsFrom low
+  modify $ \processor -> processor {flags = low}
 
 writeRegister16' :: Register8 -> Register8 -> Word16 -> State Processor ()
 writeRegister16' high low value = do
@@ -177,57 +180,55 @@ carry ::
      (Word16 -> Word16 -> Word16)
   -> State Processor (Word16 -> Word16 -> Word16)
 carry op = do
-  isSet <- gets $ cy . flags
+  isSet <- getFlag CY
   return $
     if isSet
       then \left right -> left `op` right `op` 1
       else op
 
-setFlags :: (Flags -> Flags) -> State Processor ()
-setFlags update =
-  modify $ \processor -> processor {flags = update (flags processor)}
+testZero :: Word8 -> Bool
+testZero = (==) 0
+
+testSign :: Word8 -> Bool
+testSign = flip testBit 7
+
+testParity :: Word8 -> Bool
+testParity = even . popCount
 
 -- Force 16 bits here to easily check for the carry flag
 updateArithmeticFlags :: Word16 -> State Processor ()
-updateArithmeticFlags result =
-  setFlags $ \flags ->
-    flags
-      { z = result .&. 0xff == 0
-      , s = testBit result 7
-      , p = even . popCount $ result .&. 0xff
-      , cy = result > 0xff
-      }
+updateArithmeticFlags result = do
+  setFlag Z (testZero $ fromIntegral result)
+  setFlag S (testSign $ fromIntegral result)
+  setFlag P (testParity $ fromIntegral result)
+  setFlag CY (result > 0xff)
+  -- TODO AC flag
 
 updateIncFlags :: Word8 -> State Processor ()
-updateIncFlags result =
-  setFlags $ \flags ->
-    flags
-      { z = result == 0
-      , s = testBit result 7
-      , p = even . popCount $ result .&. 0xff
-      }
+updateIncFlags result = do
+  setFlag Z (testZero result)
+  setFlag S (testSign result)
+  setFlag P (testParity result)
 
 updateLogicalFlags :: Word8 -> State Processor ()
-updateLogicalFlags result =
-  setFlags $ \flags ->
-    flags
-      { z = result == 0
-      , s = testBit result 7
-      , p = even . popCount $ result
-      , cy = False
-      , ac = False
-      }
+updateLogicalFlags result = do
+  updateIncFlags result
+  setFlag CY False
+  setFlag AC False
 
-doIf :: State Processor () -> (Flags -> Bool) -> State Processor ()
+doIf :: State Processor () -> State Processor Bool -> State Processor ()
 doIf action cond = do
-  isSet <- gets $ cond . flags
+  isSet <- cond
   when isSet action
 
 jump :: State Processor ()
 jump = readImmediate16 >>= writeRegister16 PC
 
-jumpIf :: (Flags -> Bool) -> State Processor ()
-jumpIf = doIf jump
+jumpIf :: Flag -> State Processor ()
+jumpIf flag = doIf jump $ getFlag flag
+
+jumpIfNot :: Flag -> State Processor ()
+jumpIfNot flag = doIf jump $ not <$> getFlag flag
 
 push :: Word16 -> State Processor ()
 push value = do
@@ -245,8 +246,11 @@ callAt newCounter = do
 call :: State Processor ()
 call = readImmediate16 >>= callAt
 
-callIf :: (Flags -> Bool) -> State Processor ()
-callIf = doIf call
+callIf :: Flag -> State Processor ()
+callIf flag = doIf call $ getFlag flag
+
+callIfNot :: Flag -> State Processor ()
+callIfNot flag = doIf call $ not <$> getFlag flag
 
 pop :: State Processor Word16
 pop = do
@@ -258,8 +262,11 @@ pop = do
 ret :: State Processor ()
 ret = pop >>= writeRegister16 PC
 
-retIf :: (Flags -> Bool) -> State Processor ()
-retIf = doIf ret
+retIf :: Flag -> State Processor ()
+retIf flag = doIf ret $ getFlag flag
+
+retIfNot :: Flag -> State Processor ()
+retIfNot flag = doIf ret $ not <$> getFlag flag
 
 logical ::
      State Processor Word8 -> (Word8 -> Word8 -> Word8) -> State Processor ()
@@ -285,19 +292,15 @@ cmp getter = do
 rot :: Int -> (Word8 -> Int -> Word8) -> State Processor ()
 rot carryBit op = do
   input <- readRegister8 A
-  setFlags $ \flags -> flags {cy = testBit input carryBit}
+  setFlag CY (testBit input carryBit)
   writeRegister8 A $ op input 1
 
 rotCarry :: Int -> Int -> (Word8 -> Int -> Word8) -> State Processor ()
 rotCarry carryBit uncarryBit op = do
   input <- readRegister8 A
-  oldCarry <- gets $ cy . flags
-  let carryOp =
-        if oldCarry
-          then setBit
-          else clearBit
-  let result = carryOp (op input 1) uncarryBit
-  setFlags $ \flags -> flags {cy = testBit input carryBit}
+  oldCarry <- getFlag CY
+  let result = assignBit oldCarry (op input 1) uncarryBit
+  setFlag CY (testBit input carryBit)
   writeRegister8 A result
 
 process :: Instruction -> State Processor ()
@@ -328,33 +331,33 @@ process XCHG = do
 process (PUSH from) = readRegister16 from >>= push
 process (POP to) = pop >>= writeRegister16 to
 process JMP = jump
-process JC = jumpIf cy
-process JNC = jumpIf $ not . cy
-process JZ = jumpIf z
-process JNZ = jumpIf $ not . z
-process JP = jumpIf $ not . s
-process JM = jumpIf s
-process JPE = jumpIf p
-process JPO = jumpIf $ not . p
+process JC = jumpIf CY
+process JNC = jumpIfNot CY
+process JZ = jumpIf Z
+process JNZ = jumpIfNot Z
+process JP = jumpIfNot S
+process JM = jumpIf S
+process JPE = jumpIf P
+process JPO = jumpIfNot P
 process PCHL = readRegister16 HL >>= writeRegister16 PC
 process CALL = call
-process CC = callIf cy
-process CNC = callIf $ not . cy
-process CZ = callIf z
-process CNZ = callIf $ not . z
-process CP = callIf $ not . s
-process CM = callIf s
-process CPE = callIf p
-process CPO = callIf $ not . p
+process CC = callIf CY
+process CNC = callIfNot CY
+process CZ = callIf Z
+process CNZ = callIfNot Z
+process CP = callIfNot S
+process CM = callIf S
+process CPE = callIf P
+process CPO = callIfNot P
 process RET = ret
-process RC = retIf cy
-process RNC = retIf $ not . cy
-process RZ = retIf z
-process RNZ = retIf $ not . z
-process RP = retIf $ not . s
-process RM = retIf s
-process RPE = retIf p
-process RPO = retIf $ not . p
+process RC = retIf CY
+process RNC = retIfNot CY
+process RZ = retIf Z
+process RNZ = retIfNot Z
+process RP = retIfNot S
+process RM = retIf S
+process RPE = retIf P
+process RPO = retIfNot P
 process (RST exp) = callAt $ shift (fromIntegral exp) 3
 process (INR reg) = do
   value <- readRegister8 reg
@@ -382,8 +385,7 @@ process (DAD from) = do
   left <- readRegister16 HL
   right <- readRegister16 from
   let result = fromIntegral left + fromIntegral right :: Word32
-  modify $ \processor ->
-    processor {flags = (flags processor) {cy = result > 0xffff}}
+  setFlag CY (result > 0xffff)
   writeRegister16 HL (fromIntegral result)
 process (SUB from) = registerBinaryArithmetic from (-)
 process (SBB from) = carry (-) >>= registerBinaryArithmetic from
@@ -402,7 +404,7 @@ process RRC = rot 0 rotateR
 process RAL = rotCarry 7 0 shiftL
 process RAR = rotCarry 0 7 shiftR
 process CMA = (complement <$> readRegister8 A) >>= writeRegister8 A
-process STC = setFlags $ \flags -> flags {cy = True}
+process STC = setFlag CY True
 process CMC = do
-  carry <- gets $ cy . flags
-  setFlags $ \flags -> flags {cy = not carry}
+  carry <- getFlag CY
+  setFlag CY $ not carry
