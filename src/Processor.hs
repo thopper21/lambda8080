@@ -197,8 +197,8 @@ call = do
 
 callIf :: (Flags -> Bool) -> State Processor ()
 callIf cond = do
-    isSet <- gets $ cond . flags
-    when isSet call
+  isSet <- gets $ cond . flags
+  when isSet call
 
 process :: Instruction -> State Processor ()
 process NOP = return ()
@@ -239,6 +239,7 @@ process CALL = call
 process CC = callIf cy
 process CNC = callIf $ not . cy
 process CZ = callIf z
+process CNZ = callIf $ not . z
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1

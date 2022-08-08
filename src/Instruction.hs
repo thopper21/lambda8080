@@ -55,6 +55,7 @@ data Instruction
   | CC
   | CNC
   | CZ
+  | CNZ
   -- Add
   | ADD Register8
   | ADC Register8
@@ -90,7 +91,6 @@ data Instruction
   | CMP Register8
   | RNZ
   | POP Register16
-  | CNZ
   | PUSH Register16
   | RST Word8
   | RZ
