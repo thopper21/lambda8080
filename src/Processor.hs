@@ -363,3 +363,4 @@ process RLC = rot 7 rotateL
 process RRC = rot 0 rotateR
 process RAL = rotCarry 7 0 shiftL
 process RAR = rotCarry 0 7 shiftR
+process CMA = (complement <$> readRegister8 A) >>= writeRegister8 A

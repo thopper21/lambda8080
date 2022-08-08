@@ -48,6 +48,7 @@ data Instruction
   | JZ
   | JNZ
   | JP
+  | JM
   | JPE
   | JPO
   | PCHL
@@ -103,11 +104,10 @@ data Instruction
   | RRC
   | RAL
   | RAR
-  -- NYI BELOW THIS LINE
-  | RIM
-  | DAA
+  -- Special
   | CMA
-  | SIM
+  -- NYI BELOW THIS LINE
+  | DAA
   | STC
   | CMC
   | HLT
@@ -118,7 +118,6 @@ data Instruction
   | XTHL
   | DI
   | SPHL
-  | JM
   | EI
   deriving (Show)
 
@@ -157,7 +156,7 @@ toInstruction code =
     0x1d -> DCR E
     0x1e -> MVI E
     0x1f -> RAR
-    0x20 -> RIM
+    0x20 -> NOP
     0x21 -> LXI HL
     0x22 -> SHLD
     0x23 -> INX HL
@@ -173,7 +172,6 @@ toInstruction code =
     0x2d -> DCR L
     0x2e -> MVI L
     0x2f -> CMA
-    0x30 -> SIM
     0x31 -> LXI SP
     0x32 -> STA
     0x33 -> INX SP
