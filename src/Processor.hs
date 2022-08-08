@@ -238,6 +238,7 @@ process PCHL = readRegister16 HL >>= writeRegister16 PC
 process CALL = call
 process CC = callIf cy
 process CNC = callIf $ not . cy
+process CZ = callIf z
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1

@@ -54,6 +54,7 @@ data Instruction
   | CALL
   | CC
   | CNC
+  | CZ
   -- Add
   | ADD Register8
   | ADC Register8
@@ -94,7 +95,6 @@ data Instruction
   | RST Word8
   | RZ
   | RET
-  | CZ
   | RNC
   | OUT
   | RC
