@@ -47,12 +47,31 @@ toReader E = e
 toReader H = h
 toReader L = l
 
+getFlag :: (Flags -> Bool) -> State Processor Bool
+getFlag getter = gets $ getter . flags
+
+flagsTo :: State Processor Word8
+flagsTo = do
+  isZ <- getFlag z
+  isS <- getFlag s
+  isP <- getFlag p
+  isCY <- getFlag cy
+  isAC <- getFlag ac
+  let op b =
+        if b
+          then flip setBit
+          else flip clearBit
+  return $ op isZ 6 . op isS 7 . op isP 2 . op isCY 0 . op isAC 4 $ zeroBits
+
 readRegister16 :: Register16 -> State Processor Word16
 readRegister16 BC = readRegister16' B C
 readRegister16 DE = readRegister16' D E
 readRegister16 HL = readRegister16' H L
 readRegister16 PC = gets $ pc . registers
 readRegister16 SP = gets $ sp . registers
+readRegister16 PSW = do
+  high <- readRegister8 A
+  to16 high <$> flagsTo
 
 readRegister16' :: Register8 -> Register8 -> State Processor Word16
 readRegister16' high low = do
@@ -99,6 +118,19 @@ toWriter E value registers = registers {e = value}
 toWriter H value registers = registers {h = value}
 toWriter L value registers = registers {l = value}
 
+flagsFrom :: Word8 -> State Processor ()
+flagsFrom value =
+  setFlags $
+  const
+    Flags
+      { z = val 6
+      , s = val 7
+      , p = val 2
+      , cy = val 0
+      , ac = val 4
+      }
+    where val = testBit value
+
 writeRegister16 :: Register16 -> Word16 -> State Processor ()
 writeRegister16 BC value = writeRegister16' B C value
 writeRegister16 DE value = writeRegister16' D E value
@@ -109,6 +141,10 @@ writeRegister16 PC value =
 writeRegister16 SP value =
   modify $ \processor ->
     processor {registers = (registers processor) {sp = value}}
+writeRegister16 PSW value = do
+  let (high, low) = from16 value
+  writeRegister8 A high
+  flagsFrom low
 
 writeRegister16' :: Register8 -> Register8 -> Word16 -> State Processor ()
 writeRegister16' high low value = do
