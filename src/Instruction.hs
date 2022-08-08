@@ -41,6 +41,8 @@ data Instruction
   | SHLD
   | LHLD
   | XCHG
+  -- Stack
+  | PUSH Register16
   -- Jump
   | JMP
   | JC
@@ -112,7 +114,6 @@ data Instruction
   | DAA
   | HLT
   | POP Register16
-  | PUSH Register16
   | OUT
   | IN
   | XTHL

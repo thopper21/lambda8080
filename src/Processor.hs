@@ -199,13 +199,17 @@ jump = readImmediate16 >>= writeRegister16 PC
 jumpIf :: (Flags -> Bool) -> State Processor ()
 jumpIf = doIf jump
 
+push :: Word16 -> State Processor ()
+push value = do
+  currentStack <- readRegister16 SP
+  let newStack = currentStack - 2
+  writeMemory16 newStack value
+  writeRegister16 SP newStack
+
 callAt :: Word16 -> State Processor ()
 callAt newCounter = do
   currentCounter <- readRegister16 PC
-  currentStack <- readRegister16 SP
-  let newStack = currentStack - 2
-  writeMemory16 newStack currentCounter
-  writeRegister16 SP newStack
+  push currentCounter
   writeRegister16 PC newCounter
 
 call :: State Processor ()
@@ -289,6 +293,7 @@ process XCHG = do
   oldHL <- readRegister16 HL
   writeRegister16 DE oldHL
   writeRegister16 HL oldDE
+process (PUSH from) = readRegister16 from >>= push
 process JMP = jump
 process JC = jumpIf cy
 process JNC = jumpIf $ not . cy
