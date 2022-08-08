@@ -44,6 +44,7 @@ data Instruction
   | JMP
   | JC
   | JNC
+  | JZ
   -- Add
   | ADD Register8
   | ADC Register8
@@ -85,7 +86,6 @@ data Instruction
   | RST Word8
   | RZ
   | RET
-  | JZ
   | CZ
   | CALL
   | RNC

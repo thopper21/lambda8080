@@ -210,6 +210,7 @@ process XCHG = do
 process JMP = jumpIf $ const True
 process JC = jumpIf cy
 process JNC = jumpIf $ not . cy
+process JZ = jumpIf z
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1
