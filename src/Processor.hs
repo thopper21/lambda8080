@@ -334,3 +334,4 @@ process (CMP from) = do
   right <- readRegister8 from
   updateArithmeticFlags (fromIntegral left - fromIntegral right)
 process ANI = logicalImmediate (.&.)
+process XRI = logicalImmediate xor
