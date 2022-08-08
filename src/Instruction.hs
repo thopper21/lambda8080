@@ -42,6 +42,8 @@ data Instruction
   | XCHG
   -- Jump
   | JMP
+  | JC
+  | JNC
   -- Add
   | ADD Register8
   | ADC Register8
@@ -87,11 +89,9 @@ data Instruction
   | CZ
   | CALL
   | RNC
-  | JNC
   | OUT
   | CNC
   | RC
-  | JC
   | IN
   | CC
   | RPO

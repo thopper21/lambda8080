@@ -209,6 +209,7 @@ process XCHG = do
   writeRegister16 HL oldDE
 process JMP = jumpIf $ const True
 process JC = jumpIf cy
+process JNC = jumpIf $ not . cy
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1
