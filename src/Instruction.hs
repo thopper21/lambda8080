@@ -53,6 +53,7 @@ data Instruction
   -- Call
   | CALL
   | CC
+  | CNC
   -- Add
   | ADD Register8
   | ADC Register8
@@ -96,7 +97,6 @@ data Instruction
   | CZ
   | RNC
   | OUT
-  | CNC
   | RC
   | IN
   | RPO
