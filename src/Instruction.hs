@@ -106,9 +106,9 @@ data Instruction
   | RAR
   -- Special
   | CMA
+  | STC
   -- NYI BELOW THIS LINE
   | DAA
-  | STC
   | CMC
   | HLT
   | POP Register16
