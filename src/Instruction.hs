@@ -56,6 +56,7 @@ data Instruction
   | CNC
   | CZ
   | CNZ
+  | CP
   -- Add
   | ADD Register8
   | ADC Register8
@@ -108,7 +109,6 @@ data Instruction
   | XRI
   | RP
   | DI
-  | CP
   | ORI
   | RM
   | SPHL
