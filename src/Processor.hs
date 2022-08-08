@@ -242,6 +242,7 @@ process CZ = callIf z
 process CNZ = callIf $ not . z
 process CP = callIf $ not . s
 process CM = callIf s
+process CPE = callIf p
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1
