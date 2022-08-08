@@ -72,6 +72,11 @@ data Instruction
   | RPO
   -- Restart
   | RST Word8
+  -- Increment/Decrement
+  | INR Register8
+  | DCR Register8
+  | INX Register16
+  | DCX Register16
   -- Add
   | ADD Register8
   | ADC Register8
@@ -83,11 +88,8 @@ data Instruction
   | SBB Register8
   | SUI
   | SBI
-  -- Increment/Decrement
-  | INR Register8
-  | DCR Register8
-  | INX Register16
-  | DCX Register16
+  -- Logical
+  | ANA Register8
   -- NYI BELOW THIS LINE
   | LXI Register16
   | RLC
@@ -101,7 +103,6 @@ data Instruction
   | STC
   | CMC
   | HLT
-  | ANA Register8
   | XRA Register8
   | ORA Register8
   | CMP Register8

@@ -177,6 +177,17 @@ updateIncFlags result =
       , p = even . popCount $ result .&. 0xff
       }
 
+updateLogicalFlags :: Word8 -> State Processor ()
+updateLogicalFlags result =
+  setFlags $ \flags ->
+    flags
+      { z = result == 0
+      , s = testBit result 7
+      , p = even . popCount $ result
+      , cy = False
+      , ac = False
+      }
+
 doIf :: State Processor () -> (Flags -> Bool) -> State Processor ()
 doIf action cond = do
   isSet <- gets $ cond . flags
@@ -301,3 +312,9 @@ process (SUB from) = registerBinaryArithmetic from (-)
 process (SBB from) = carry (-) >>= registerBinaryArithmetic from
 process SUI = immediateBinaryArithmetic (-)
 process SBI = carry (-) >>= immediateBinaryArithmetic
+process (ANA from) = do
+  left <- readRegister8 A
+  right <- readRegister8 from
+  let result = left .&. right
+  updateLogicalFlags result
+  writeRegister8 A result
