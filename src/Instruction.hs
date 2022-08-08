@@ -70,6 +70,8 @@ data Instruction
   | RM
   | RPE
   | RPO
+  -- Restart
+  | RST Word8
   -- Add
   | ADD Register8
   | ADC Register8
@@ -105,7 +107,6 @@ data Instruction
   | CMP Register8
   | POP Register16
   | PUSH Register16
-  | RST Word8
   | OUT
   | IN
   | XTHL

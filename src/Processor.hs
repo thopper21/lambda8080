@@ -188,15 +188,17 @@ jump = readImmediate16 >>= writeRegister16 PC
 jumpIf :: (Flags -> Bool) -> State Processor ()
 jumpIf = doIf jump
 
-call :: State Processor ()
-call = do
-  newCounter <- readImmediate16
+callAt :: Word16 -> State Processor ()
+callAt newCounter = do
   currentCounter <- readRegister16 PC
   currentStack <- readRegister16 SP
   let newStack = currentStack - 2
   writeMemory16 newStack currentCounter
   writeRegister16 SP newStack
   writeRegister16 PC newCounter
+
+call :: State Processor ()
+call = readImmediate16 >>= callAt
 
 callIf :: (Flags -> Bool) -> State Processor ()
 callIf = doIf call
@@ -265,6 +267,7 @@ process RP = retIf $ not . s
 process RM = retIf s
 process RPE = retIf p
 process RPO = retIf $ not . p
+process (RST exp) = callAt $ shift (fromIntegral exp) 3
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1
