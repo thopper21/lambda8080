@@ -1,4 +1,7 @@
-module Processor where
+module Processor
+  ( step
+  , rom
+  ) where
 
 import           Control.Monad.State
 import           Data.Bits
@@ -13,14 +16,6 @@ data Flag
   | P
   | CY
   | AC
-
-data Flags = Flags
-  { z  :: Bool
-  , s  :: Bool
-  , p  :: Bool
-  , cy :: Bool
-  , ac :: Bool
-  }
 
 data Registers = Registers
   { a  :: Word8
@@ -343,6 +338,7 @@ process XTHL = do
   hlVal <- readRegister16 HL
   writeRegister16 HL stackVal
   writeMemory16 stack hlVal
+process SPHL = readRegister16 HL >>= writeRegister16 SP
 process JMP = jump
 process JC = jumpIf CY
 process JNC = jumpIfNot CY
@@ -436,3 +432,16 @@ process DAA = do
           then shiftL 6 4
           else 0
   writeRegister8 A (value + lowAddend + highAddend)
+
+step :: Processor -> Processor
+step = execState $ (toInstruction <$> readImmediate8) >>= process
+
+rom :: [Word8] -> Int -> Processor
+rom instructions memSize =
+  Processor
+    { flags = 0
+    , registers =
+        Registers
+          {a = 0, b = 0, c = 0, d = 0, e = 0, h = 0, l = 0, pc = 0, sp = 0}
+    , memory = fromAscList (zip [0 .. memSize] (instructions ++ repeat 0))
+    }

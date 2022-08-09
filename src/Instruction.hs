@@ -45,6 +45,7 @@ data Instruction
   | PUSH Register16
   | POP Register16
   | XTHL
+  | SPHL
   -- Jump
   | JMP
   | JC
@@ -118,7 +119,6 @@ data Instruction
   | OUT
   | IN
   | DI
-  | SPHL
   | EI
   deriving (Show)
 
