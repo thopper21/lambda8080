@@ -57,9 +57,9 @@ instance Show Processor where
       toStr :: Word8 -> String
       toStr x =
         case toStr' x of
-          [l,h] -> [h, l]
-          [l]   -> ['0', l]
-          []    -> ['0', '0']
+          [l, h] -> [h, l]
+          [l]    -> ['0', l]
+          []     -> ['0', '0']
       toStr' :: Word8 -> String
       toStr' 0 = []
       toStr' x = c : toStr' rem
@@ -268,19 +268,20 @@ updateLogicalFlags result = do
   setFlag CY False
   setFlag AC False
 
-doIf :: State Processor () -> State Processor Bool -> State Processor ()
-doIf action cond = do
-  isSet <- cond
-  when isSet action
-
 jump :: State Processor ()
 jump = readImmediate16 >>= writeRegister16 PC
 
 jumpIf :: Flag -> State Processor ()
-jumpIf flag = doIf jump $ getFlag flag
+jumpIf flag = do
+  addr <- readImmediate16
+  isSet <- getFlag flag
+  when isSet $ writeRegister16 PC addr
 
 jumpIfNot :: Flag -> State Processor ()
-jumpIfNot flag = doIf jump $ not <$> getFlag flag
+jumpIfNot flag = do
+  addr <- readImmediate16
+  isSet <- getFlag flag
+  unless isSet $ writeRegister16 PC addr
 
 push :: Word16 -> State Processor ()
 push value = do
@@ -299,10 +300,16 @@ call :: State Processor ()
 call = readImmediate16 >>= callAt
 
 callIf :: Flag -> State Processor ()
-callIf flag = doIf call $ getFlag flag
+callIf flag = do
+  addr <- readImmediate16
+  isSet <- getFlag flag
+  when isSet $ callAt addr
 
 callIfNot :: Flag -> State Processor ()
-callIfNot flag = doIf call $ not <$> getFlag flag
+callIfNot flag = do
+  addr <- readImmediate16
+  isSet <- getFlag flag
+  unless isSet $ callAt addr
 
 pop :: State Processor Word16
 pop = do
@@ -315,10 +322,14 @@ ret :: State Processor ()
 ret = pop >>= writeRegister16 PC
 
 retIf :: Flag -> State Processor ()
-retIf flag = doIf ret $ getFlag flag
+retIf flag = do
+  isSet <- getFlag flag
+  when isSet ret
 
 retIfNot :: Flag -> State Processor ()
-retIfNot flag = doIf ret $ not <$> getFlag flag
+retIfNot flag = do
+  isSet <- getFlag flag
+  unless isSet ret
 
 logical ::
      State Processor Word8 -> (Word8 -> Word8 -> Word8) -> State Processor ()
