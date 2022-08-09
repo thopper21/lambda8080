@@ -1,5 +1,6 @@
 module Main where
 
+import           Control.Monad.State
 import           Data.ByteString     as BS (drop, readFile, unpack)
 import           Data.Semigroup      ((<>))
 import           Disassembler
@@ -39,7 +40,7 @@ runDisassembler args = do
 stepN :: Int -> Processor -> Int -> IO Processor
 stepN 0 processor _ = return processor
 stepN n processor i = do
-  let (opCode, processor') = step processor
+  processor' <- execStateT step processor
   stepN (n - 1) processor' (i + 1)
 
 runProcessor args = do
