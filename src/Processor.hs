@@ -170,10 +170,7 @@ immediateBinaryArithmetic = binaryArithmetic readImmediate8
 binaryArithmetic ::
      State Processor Word8 -> (Word16 -> Word16 -> Word16) -> State Processor ()
 binaryArithmetic getter op = do
-  left <- readRegister8 A
-  right <- getter
-  let result = fromIntegral left `op` fromIntegral right
-  updateArithmeticFlags result
+  result <- arithmetic op (readRegister8 A) getter
   writeRegister8 A (fromIntegral result)
 
 carry ::
@@ -195,24 +192,35 @@ testSign = flip testBit 7
 testParity :: Word8 -> Bool
 testParity = even . popCount
 
--- Force 16 bits here to easily check for the carry flag
-updateArithmeticFlags :: Word16 -> State Processor ()
-updateArithmeticFlags result = do
-  setFlag Z (testZero $ fromIntegral result)
-  setFlag S (testSign $ fromIntegral result)
-  setFlag P (testParity $ fromIntegral result)
-  setFlag CY (result > 0xff)
-  -- TODO AC flag
-
-updateIncFlags :: Word8 -> State Processor ()
-updateIncFlags result = do
+updateFlags :: Word8 -> State Processor ()
+updateFlags result = do
   setFlag Z (testZero result)
   setFlag S (testSign result)
   setFlag P (testParity result)
 
+arithmetic ::
+     (Word16 -> Word16 -> Word16)
+  -> State Processor Word8
+  -> State Processor Word8
+  -> State Processor Word8
+arithmetic op left right = do
+  leftVal <- left
+  rightVal <- right
+  let result16 = fromIntegral leftVal `op` fromIntegral rightVal
+  let result8 = fromIntegral result16
+  updateFlags result8
+  -- 8 bit arithmetic carry
+  setFlag CY (result16 > 0xff)
+  -- 4 bit arithmetic carry
+  let to4 val = fromIntegral val .&. 0xf
+  let left4 = to4 leftVal
+  let right4 = to4 rightVal
+  setFlag AC ((left4 `op` right4) > 0xf)
+  return result8
+
 updateLogicalFlags :: Word8 -> State Processor ()
 updateLogicalFlags result = do
-  updateIncFlags result
+  updateFlags result
   setFlag CY False
   setFlag AC False
 
@@ -285,9 +293,8 @@ logicalImmediate = logical readImmediate8
 
 cmp :: State Processor Word8 -> State Processor ()
 cmp getter = do
-  left <- readRegister8 A
-  right <- getter
-  updateArithmeticFlags (fromIntegral left - fromIntegral right)
+  arithmetic (-) (readRegister8 A) getter
+  return ()
 
 rot :: Int -> (Word8 -> Int -> Word8) -> State Processor ()
 rot carryBit op = do
@@ -362,12 +369,14 @@ process (RST exp) = callAt $ shift (fromIntegral exp) 3
 process (INR reg) = do
   value <- readRegister8 reg
   let newValue = value + 1
-  updateIncFlags newValue
+  updateFlags newValue
+  setFlag AC (value .&. 0xff == 0xff)
   writeRegister8 reg newValue
 process (DCR reg) = do
   value <- readRegister8 reg
   let newValue = value - 1
-  updateIncFlags newValue
+  updateFlags newValue
+  setFlag AC (newValue .&. 0xff == 0xff)
   writeRegister8 reg newValue
 process (INX reg) = do
   value <- readRegister16 reg
