@@ -144,7 +144,7 @@ readMemory8 addr =
   gets $ fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
 
 readMemory16 :: Word16 -> State Processor Word16
-readMemory16 addr = liftM2 to16 (readMemory8 addr) (readMemory8 (addr + 1))
+readMemory16 addr = liftM2 to16 (readMemory8 (addr + 1)) (readMemory8 addr)
 
 readImmediate8 :: State Processor Word8
 readImmediate8 = do
