@@ -46,7 +46,7 @@ stepN n processor i = do
 runProcessor args = do
   assembly <- BS.readFile $ file args
   let instructions = BS.unpack assembly
-  let processor = rom instructions 0xffff
+  let processor = rom instructions
   result <- stepN (count args) processor 0
   print result
 

@@ -143,7 +143,7 @@ from16 value = (fromIntegral $ shift value (-8), fromIntegral value)
 
 readMemory8 :: Word16 -> ProcessorState Word8
 readMemory8 addr =
-  gets $ fromJust . Data.IntMap.lookup (fromIntegral addr) . memory
+  gets $ fromMaybe 0 . Data.IntMap.lookup (fromIntegral addr) . memory
 
 readMemory16 :: Word16 -> ProcessorState Word16
 readMemory16 addr = liftM2 to16 (readMemory8 (addr + 1)) (readMemory8 addr)
@@ -506,12 +506,12 @@ step = do
   process $ toInstruction opCode
   return opCode
 
-rom :: [Word8] -> Int -> Processor
-rom instructions memSize =
+rom :: [Word8] -> Processor
+rom instructions =
   Processor
     { flags = 0
     , registers =
         Registers
           {a = 0, b = 0, c = 0, d = 0, e = 0, h = 0, l = 0, pc = 0, sp = 0}
-    , memory = fromAscList (zip [0 .. memSize] (instructions ++ repeat 0))
+    , memory = fromAscList (zip [0 .. ] instructions)
     }
