@@ -34,9 +34,10 @@ data Registers = Registers
   }
 
 data Processor = Processor
-  { flags     :: Word8
-  , registers :: Registers
-  , memory    :: IntMap Word8
+  { flags             :: Word8
+  , registers         :: Registers
+  , memory            :: IntMap Word8
+  , interruptsEnabled :: Bool
   }
 
 instance Show Processor where
@@ -87,6 +88,10 @@ instance Show Processor where
           rem = x `div` 16
 
 type ProcessorState = StateT Processor IO
+
+setInterruptsEnabled :: Bool -> ProcessorState ()
+setInterruptsEnabled enabled =
+  modify $ \processor -> processor {interruptsEnabled = enabled}
 
 flagBit :: Flag -> Int
 flagBit Z  = 6
@@ -495,10 +500,10 @@ process DAA = do
           then shiftL 6 4
           else 0
   writeRegister8 A (value + lowAddend + highAddend)
+process EI = setInterruptsEnabled True
+process DI = setInterruptsEnabled False
 -- TODO Interact with machine
 process HLT = return ()
-process DI = return ()
-process EI = return ()
 process IN = return ()
 process OUT = return ()
 
@@ -516,4 +521,5 @@ rom instructions =
         Registers
           {a = 0, b = 0, c = 0, d = 0, e = 0, h = 0, l = 0, pc = 0, sp = 0}
     , memory = fromAscList (zip [0 ..] instructions)
+    , interruptsEnabled = True
     }

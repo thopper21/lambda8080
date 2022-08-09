@@ -116,12 +116,13 @@ data Instruction
   | STC
   | CMC
   | DAA
+  -- Control
+  | EI
+  | DI
   -- NYI BELOW THIS LINE
   | HLT
   | OUT
   | IN
-  | DI
-  | EI
   deriving (Show)
 
 toInstruction :: Word8 -> Instruction
