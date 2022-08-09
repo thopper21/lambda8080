@@ -173,6 +173,7 @@ toInstruction code =
     0x2d -> DCR L
     0x2e -> MVI L
     0x2f -> CMA
+    0x30 -> NOP
     0x31 -> LXI SP
     0x32 -> STA
     0x33 -> INX SP
