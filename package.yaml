@@ -24,6 +24,10 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies:
+    - bytestring
+    - containers
+    - mtl
 
 executables:
   lambda8080-exe:
@@ -34,7 +38,10 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - bytestring
     - lambda8080
+    - mtl
+    - optparse-applicative
 
 tests:
   lambda8080-test:
