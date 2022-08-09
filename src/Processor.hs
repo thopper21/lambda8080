@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module Processor
   ( Processor
   , step
@@ -475,7 +476,7 @@ process RLC = rot 7 rotateL
 process RRC = rot 0 rotateR
 process RAL = rotCarry 7 0 shiftL
 process RAR = rotCarry 0 7 shiftR
-process CMA = (complement <$> readRegister8 A) >>= writeRegister8 A
+process CMA = readRegister8 A >>= writeRegister8 A . complement
 process STC = setFlag CY True
 process CMC = do
   carry <- getFlag CY
