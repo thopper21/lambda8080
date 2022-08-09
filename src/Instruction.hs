@@ -44,6 +44,7 @@ data Instruction
   -- Stack
   | PUSH Register16
   | POP Register16
+  | XTHL
   -- Jump
   | JMP
   | JC
@@ -116,7 +117,6 @@ data Instruction
   | HLT
   | OUT
   | IN
-  | XTHL
   | DI
   | SPHL
   | EI

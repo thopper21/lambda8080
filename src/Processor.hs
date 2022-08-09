@@ -337,6 +337,12 @@ process XCHG = do
   writeRegister16 HL oldDE
 process (PUSH from) = readRegister16 from >>= push
 process (POP to) = pop >>= writeRegister16 to
+process XTHL = do
+  stack <- readRegister16 SP
+  stackVal <- readMemory16 stack
+  hlVal <- readRegister16 HL
+  writeRegister16 HL stackVal
+  writeMemory16 stack hlVal
 process JMP = jump
 process JC = jumpIf CY
 process JNC = jumpIfNot CY
