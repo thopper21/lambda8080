@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+
 module Processor
   ( Processor
   , step
@@ -514,5 +515,5 @@ rom instructions =
     , registers =
         Registers
           {a = 0, b = 0, c = 0, d = 0, e = 0, h = 0, l = 0, pc = 0, sp = 0}
-    , memory = fromAscList (zip [0 .. ] instructions)
+    , memory = fromAscList (zip [0 ..] instructions)
     }

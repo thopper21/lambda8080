@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+
 module Instruction
   ( Instruction(..)
   , Register8(..)
