@@ -1,5 +1,6 @@
 module Processor
-  ( step
+  ( Processor
+  , step
   , rom
   ) where
 
@@ -9,6 +10,7 @@ import           Data.IntMap
 import           Data.Maybe
 import           Data.Word
 import           Instruction
+import           Numeric
 
 data Flag
   = Z
@@ -34,6 +36,53 @@ data Processor = Processor
   , registers :: Registers
   , memory    :: IntMap Word8
   }
+
+instance Show Processor where
+  show processor =
+    "af: " ++
+    showReg a ++
+    showFlags ++
+    " bc: " ++
+    showReg b ++
+    showReg c ++
+    " de: " ++
+    showReg d ++
+    showReg e ++
+    " hl: " ++
+    showReg h ++ showReg l ++ " pc: " ++ showReg16 pc ++ " sp:" ++ showReg16 sp
+    where
+      showReg reg = toStr $ fromIntegral (reg . registers $ processor)
+      showReg16 reg = show $ showHex (reg . registers $ processor) ""
+      showFlags = toStr $ fromIntegral (flags processor)
+      toStr :: Word8 -> String
+      toStr x =
+        case toStr' x of
+          [l,h] -> [h, l]
+          [l]   -> ['0', l]
+          []    -> ['0', '0']
+      toStr' :: Word8 -> String
+      toStr' 0 = []
+      toStr' x = c : toStr' rem
+        where
+          c =
+            case x `mod` 16 of
+              0  -> '0'
+              1  -> '1'
+              2  -> '2'
+              3  -> '3'
+              4  -> '4'
+              5  -> '5'
+              6  -> '6'
+              7  -> '7'
+              8  -> '8'
+              9  -> '9'
+              10 -> 'a'
+              11 -> 'b'
+              12 -> 'c'
+              13 -> 'd'
+              14 -> 'e'
+              15 -> 'f'
+          rem = x `div` 16
 
 flagBit :: Flag -> Int
 flagBit Z  = 6
@@ -105,7 +154,7 @@ readImmediate8 = do
   return result
 
 readImmediate16 :: State Processor Word16
-readImmediate16 = liftM2 to16 readImmediate8 readImmediate8
+readImmediate16 = liftM2 (flip to16) readImmediate8 readImmediate8
 
 writeRegister8 :: Register8 -> Word8 -> State Processor ()
 writeRegister8 M value = do
@@ -432,9 +481,19 @@ process DAA = do
           then shiftL 6 4
           else 0
   writeRegister8 A (value + lowAddend + highAddend)
+-- TODO Interact with machine
+process HLT = return ()
+process DI = return ()
+process EI = return ()
+process IN = return ()
+process OUT = return ()
 
-step :: Processor -> Processor
-step = execState $ (toInstruction <$> readImmediate8) >>= process
+step :: Processor -> (Word8, Processor)
+step =
+  runState $ do
+    opCode <- readImmediate8
+    process $ toInstruction opCode
+    return opCode
 
 rom :: [Word8] -> Int -> Processor
 rom instructions memSize =

@@ -3,7 +3,9 @@ module Main where
 import           Data.ByteString     as BS (drop, readFile, unpack)
 import           Data.Semigroup      ((<>))
 import           Disassembler
+import           Instruction
 import           Options.Applicative
+import           Processor
 
 data DisassemblerArgs = DisassemblerArgs
   { file   :: FilePath
@@ -34,7 +36,22 @@ runDisassembler args = do
   let instructions = disassemble $ BS.unpack (BS.drop (offset args) assembly)
   mapM_ print $ take (count args) instructions
 
-main = runDisassembler =<< execParser opts
+stepN :: Int -> Processor -> Int -> IO Processor
+stepN 0 processor _ = return processor
+stepN n processor i = do
+  let (opCode, processor') = step processor
+  print $ toInstruction opCode
+  print i
+  print processor'
+  stepN (n - 1) processor' (i + 1)
+
+runProcessor args = do
+  assembly <- BS.readFile $ file args
+  let instructions = BS.unpack assembly
+  let processor = rom instructions 0xffff
+  stepN (count args) processor 0
+
+main = runProcessor =<< execParser opts
   where
     opts =
       info
