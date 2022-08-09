@@ -421,7 +421,8 @@ process DAA = do
   value <- readRegister8 A
   ac <- getFlag AC
   cy <- getFlag CY
-  let lowAddend = if ac || (value .&. 0xf > 9)
+  let lowAddend =
+        if ac || (value .&. 0xf > 9)
           then 6
           else 0
   let highAddend =
