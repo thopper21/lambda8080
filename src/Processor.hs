@@ -417,3 +417,15 @@ process STC = setFlag CY True
 process CMC = do
   carry <- getFlag CY
   setFlag CY $ not carry
+process DAA = do
+  value <- readRegister8 A
+  ac <- getFlag AC
+  cy <- getFlag CY
+  let lowAddend = if ac || (value .&. 0xf > 9)
+          then 6
+          else 0
+  let highAddend =
+        if cy || (shiftR (value .&. 0xf0) 4 > 9)
+          then shiftL 6 4
+          else 0
+  writeRegister8 A (value + lowAddend + highAddend)

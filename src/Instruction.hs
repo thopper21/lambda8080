@@ -111,8 +111,8 @@ data Instruction
   | CMA
   | STC
   | CMC
-  -- NYI BELOW THIS LINE
   | DAA
+  -- NYI BELOW THIS LINE
   | HLT
   | OUT
   | IN
