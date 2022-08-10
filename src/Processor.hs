@@ -515,7 +515,7 @@ process OUT = do
 process EI = setInterruptsEnabled True
 process DI = setInterruptsEnabled False
 process NOP = return ()
-process HLT = modify $ \processor -> processor { halted = True }
+process HLT = modify $ \processor -> processor {halted = True}
 
 step :: ProcessorState Word8
 step = do
