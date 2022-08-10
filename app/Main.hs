@@ -8,7 +8,7 @@ import           Disassembler
 import           Invaders
 import           Options.Applicative
 import           Processor
-import Repl
+import           Repl
 
 data DisassemblerArgs = DisassemblerArgs
   { file   :: FilePath
@@ -58,5 +58,4 @@ runProcessor args = do
 --      info
 --        (disassemblerArgsParser <**> helper)
 --        (fullDesc <> progDesc "Disassemble 8080 assembly for FILE")
-
 main = loop
