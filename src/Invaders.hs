@@ -3,7 +3,7 @@ module Invaders
   , initInvaders
   ) where
 
-import           Data.IntMap
+import           Data.IntMap as IntMap
 import           Data.Maybe
 import           Data.Word
 import           Processor
@@ -13,8 +13,7 @@ newtype Invaders = Invaders
   }
 
 instance Platform Invaders where
-  readMemory addr =
-    fromMaybe 0 . Data.IntMap.lookup (fromIntegral addr) . memory
+  readMemory addr = fromMaybe 0 . IntMap.lookup (fromIntegral addr) . memory
   writeMemory addr value invaders =
     invaders {memory = insert (fromIntegral addr) value (memory invaders)}
   -- Simple defaults for Space Invaders to run in attract mode
