@@ -16,16 +16,18 @@ data Action
 
 parse :: String -> Action
 parse line =
-  case line of
-    "q" -> Quit
-    "h" -> Help
-    _   -> Error (UnknownCommand line)
+  case words line of
+    ["q"]    -> Quit
+    ["quit"] -> Quit
+    ["h"]    -> Help
+    ["help"] -> Help
+    _        -> Error (UnknownCommand line)
 
 help :: IO ()
 help = do
   putStrLn "Commands:"
-  putStrLn "\th\tDisplay this help message"
-  putStrLn "\tq\tQuit the debugger"
+  putStrLn "\th(elp)\t\tDisplay this help message"
+  putStrLn "\tq(uit)\t\tQuit the debugger"
 
 error :: ErrorKind -> IO ()
 error (UnknownCommand command) = do
