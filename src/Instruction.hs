@@ -30,9 +30,8 @@ data Register16
   deriving (Show)
 
 data Instruction
-  = NOP
   -- Move, Load and Store
-  | MOV Register8
+  = MOV Register8
         Register8
   | MVI Register8
   | LXI Register16
@@ -118,12 +117,12 @@ data Instruction
   | DAA
   -- IO
   | IN
+  | OUT
   -- Control
   | EI
   | DI
-  -- NYI BELOW THIS LINE
+  | NOP
   | HLT
-  | OUT
   deriving (Show)
 
 toInstruction :: Word8 -> Instruction

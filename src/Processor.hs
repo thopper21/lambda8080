@@ -37,6 +37,7 @@ data Processor = Processor
   { flags             :: Word8
   , registers         :: Registers
   , interruptsEnabled :: Bool
+  , halted            :: Bool
   , memory            :: IntMap Word8
   , readIn            :: Word8 -> IO Word8
   , writeOut          :: Word8 -> Word8 -> IO ()
@@ -376,7 +377,6 @@ rotCarry carryBit uncarryBit op = do
   writeRegister8 A result
 
 process :: Instruction -> ProcessorState ()
-process NOP = return ()
 process (MOV to from) = readRegister8 from >>= writeRegister8 to
 process (MVI to) = readImmediate8 >>= writeRegister8 to
 process (LXI to) = readImmediate16 >>= writeRegister16 to
@@ -514,8 +514,8 @@ process OUT = do
   liftIO $ writeOut port value
 process EI = setInterruptsEnabled True
 process DI = setInterruptsEnabled False
--- TODO Interact with machine
-process HLT = return ()
+process NOP = return ()
+process HLT = modify $ \processor -> processor { halted = True }
 
 step :: ProcessorState Word8
 step = do
@@ -530,8 +530,9 @@ rom instructions readIn writeOut =
     , registers =
         Registers
           {a = 0, b = 0, c = 0, d = 0, e = 0, h = 0, l = 0, pc = 0, sp = 0}
-    , memory = fromAscList (zip [0 ..] instructions)
     , interruptsEnabled = True
+    , halted = False
+    , memory = fromAscList (zip [0 ..] instructions)
     , readIn = readIn
     , writeOut = writeOut
     }
