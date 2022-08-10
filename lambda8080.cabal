@@ -27,6 +27,7 @@ library
   exposed-modules:
       Disassembler
       Instruction
+      Invaders
       Processor
   other-modules:
       Paths_lambda8080
@@ -35,6 +36,7 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , containers
     , mtl
   default-language: Haskell2010
 
@@ -48,7 +50,6 @@ executable lambda8080-exe
   build-depends:
       base >=4.7 && <5
     , bytestring
-    , containers
     , lambda8080
     , mtl
     , optparse-applicative

@@ -26,6 +26,7 @@ library:
   source-dirs: src
   dependencies:
     - bytestring
+    - containers
     - mtl
 
 executables:
@@ -38,7 +39,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - bytestring
-    - containers
     - lambda8080
     - mtl
     - optparse-applicative
