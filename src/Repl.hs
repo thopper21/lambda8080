@@ -4,33 +4,47 @@ module Repl
 
 import           Control.Monad
 import           Control.Monad.State
+import           Data.ByteString     as BS (drop, readFile, unpack)
 import           Data.Maybe
+import           Invaders
+import           Processor
 import           System.IO
 
 newtype ErrorKind =
   UnknownCommand String
 
 data Action
-  = Quit
+  = Load String
   | Help
+  | Quit
   | Error ErrorKind
 
-data ReplState = ReplState
-  {
+newtype ReplState = ReplState
+  { game :: Maybe (Processor Invaders)
   }
 
 parse :: String -> Action
 parse line =
   case words line of
-    ["q"]    -> Quit
-    ["quit"] -> Quit
-    ["h"]    -> Help
-    ["help"] -> Help
-    _        -> Error (UnknownCommand line)
+    ["q"]          -> Quit
+    ["quit"]       -> Quit
+    ["h"]          -> Help
+    ["help"]       -> Help
+    ["l", file]    -> Load file
+    ["load", file] -> Load file
+    _              -> Error (UnknownCommand line)
+
+load :: String -> StateT ReplState IO ()
+load file = do
+  assembly <- liftIO $ BS.readFile file
+  let instructions = BS.unpack assembly
+  let processor = initProcessor $ initInvaders instructions
+  modify $ \state -> state {game = Just processor}
 
 help :: IO ()
 help = do
   putStrLn "Commands:"
+  putStrLn "\tl(oad) FILE\t Load an assembly file"
   putStrLn "\th(elp)\t\tDisplay this help message"
   putStrLn "\tq(uit)\t\tQuit the debugger"
 
@@ -48,6 +62,7 @@ eval :: Action -> StateT ReplState IO ()
 eval Quit              = return ()
 eval (Error errorKind) = evalLoop $ liftIO $ Repl.error errorKind
 eval Help              = evalLoop $ liftIO help
+eval (Load file)       = evalLoop $ load file
 
 prompt :: IO ()
 prompt = do
@@ -61,4 +76,4 @@ loop = do
   eval action
 
 runRepl :: IO ()
-runRepl = evalStateT loop (ReplState {})
+runRepl = evalStateT loop (ReplState {game = Nothing})
