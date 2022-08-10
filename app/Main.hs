@@ -8,6 +8,7 @@ import           Disassembler
 import           Invaders
 import           Options.Applicative
 import           Processor
+import Repl
 
 data DisassemblerArgs = DisassemblerArgs
   { file   :: FilePath
@@ -51,9 +52,11 @@ runProcessor args = do
   result <- stepN (count args) processor 0
   print result
 
-main = runProcessor =<< execParser opts
-  where
-    opts =
-      info
-        (disassemblerArgsParser <**> helper)
-        (fullDesc <> progDesc "Disassemble 8080 assembly for FILE")
+--main = runProcessor =<< execParser opts
+--  where
+--    opts =
+--      info
+--        (disassemblerArgsParser <**> helper)
+--        (fullDesc <> progDesc "Disassemble 8080 assembly for FILE")
+
+main = loop

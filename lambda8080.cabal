@@ -29,6 +29,7 @@ library
       Instruction
       Invaders
       Processor
+      Repl
   other-modules:
       Paths_lambda8080
   hs-source-dirs:
