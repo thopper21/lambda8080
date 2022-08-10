@@ -36,8 +36,10 @@ data Registers = Registers
 data Processor = Processor
   { flags             :: Word8
   , registers         :: Registers
-  , memory            :: IntMap Word8
   , interruptsEnabled :: Bool
+  , memory            :: IntMap Word8
+  , readIn            :: Word8 -> IO Word8
+  , writeOut          :: Word8 -> Word8 -> IO ()
   }
 
 instance Show Processor where
@@ -500,12 +502,20 @@ process DAA = do
           then shiftL 6 4
           else 0
   writeRegister8 A (value + lowAddend + highAddend)
+process IN = do
+  port <- readImmediate8
+  readIn <- gets readIn
+  result <- liftIO $ readIn port
+  writeRegister8 A result
+process OUT = do
+  port <- readImmediate8
+  writeOut <- gets writeOut
+  value <- readRegister8 A
+  liftIO $ writeOut port value
 process EI = setInterruptsEnabled True
 process DI = setInterruptsEnabled False
 -- TODO Interact with machine
 process HLT = return ()
-process IN = return ()
-process OUT = return ()
 
 step :: ProcessorState Word8
 step = do
@@ -513,8 +523,8 @@ step = do
   process $ toInstruction opCode
   return opCode
 
-rom :: [Word8] -> Processor
-rom instructions =
+rom :: [Word8] -> (Word8 -> IO Word8) -> (Word8 -> Word8 -> IO ()) -> Processor
+rom instructions readIn writeOut =
   Processor
     { flags = 0
     , registers =
@@ -522,4 +532,6 @@ rom instructions =
           {a = 0, b = 0, c = 0, d = 0, e = 0, h = 0, l = 0, pc = 0, sp = 0}
     , memory = fromAscList (zip [0 ..] instructions)
     , interruptsEnabled = True
+    , readIn = readIn
+    , writeOut = writeOut
     }

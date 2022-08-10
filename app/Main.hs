@@ -3,6 +3,7 @@ module Main where
 import           Control.Monad.State
 import           Data.ByteString     as BS (drop, readFile, unpack)
 import           Data.Semigroup      ((<>))
+import           Data.Word
 import           Disassembler
 import           Instruction
 import           Options.Applicative
@@ -43,10 +44,21 @@ stepN n processor i = do
   processor' <- execStateT step processor
   stepN (n - 1) processor' (i + 1)
 
+-- Simple defaults for Space Invaders to run in attract mode
+-- TODO: Implement Space Invaders shift register and move to invaders folder
+invadersIn :: Word8 -> IO Word8
+invadersIn port =
+  case port of
+    0 -> return 0x01
+    _ -> return 0x00
+
+invadersOut :: Word8 -> Word8 -> IO ()
+invadersOut port value = return ()
+
 runProcessor args = do
   assembly <- BS.readFile $ file args
   let instructions = BS.unpack assembly
-  let processor = rom instructions
+  let processor = rom instructions invadersIn invadersOut
   result <- stepN (count args) processor 0
   print result
 
