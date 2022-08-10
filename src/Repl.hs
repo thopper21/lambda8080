@@ -1,8 +1,9 @@
 module Repl
-  ( loop
+  ( runRepl
   ) where
 
 import           Control.Monad
+import           Control.Monad.State
 import           Data.Maybe
 import           System.IO
 
@@ -13,6 +14,10 @@ data Action
   = Quit
   | Help
   | Error ErrorKind
+
+data ReplState = ReplState
+  {
+  }
 
 parse :: String -> Action
 parse line =
@@ -34,23 +39,26 @@ error (UnknownCommand command) = do
   putStrLn $ "Unknown command: '" ++ command ++ "'"
   help
 
-evalLoop :: IO () -> IO ()
+evalLoop :: StateT ReplState IO () -> StateT ReplState IO ()
 evalLoop action = do
   action
   loop
 
-eval :: Action -> IO ()
+eval :: Action -> StateT ReplState IO ()
 eval Quit              = return ()
-eval (Error errorKind) = evalLoop $ Repl.error errorKind
-eval Help              = evalLoop help
+eval (Error errorKind) = evalLoop $ liftIO $ Repl.error errorKind
+eval Help              = evalLoop $ liftIO help
 
 prompt :: IO ()
 prompt = do
   putStr "lambda8080> "
   hFlush stdout
 
-loop :: IO ()
+loop :: StateT ReplState IO ()
 loop = do
-  prompt
-  action <- parse <$> getLine
+  liftIO prompt
+  action <- parse <$> liftIO getLine
   eval action
+
+runRepl :: IO ()
+runRepl = evalStateT loop (ReplState {})

@@ -58,4 +58,4 @@ runProcessor args = do
 --      info
 --        (disassemblerArgsParser <**> helper)
 --        (fullDesc <> progDesc "Disassemble 8080 assembly for FILE")
-main = loop
+main = runRepl
