@@ -7,7 +7,6 @@ import           Data.Maybe
 import           Data.Semigroup      ((<>))
 import           Data.Word
 import           Disassembler
-import           Instruction
 import           Options.Applicative
 import           Processor
 

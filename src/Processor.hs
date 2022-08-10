@@ -38,8 +38,7 @@ class Platform a where
   readIn :: Word8 -> a -> IO Word8
   writeOut :: Word8 -> Word8 -> a -> IO ()
 
-data Platform a =>
-     Processor a = Processor
+data Processor a = Processor
   { flags             :: Word8
   , registers         :: Registers
   , interruptsEnabled :: Bool
@@ -47,7 +46,7 @@ data Platform a =>
   , platform          :: a
   }
 
-instance Platform a => Show (Processor a) where
+instance Show (Processor a) where
   show processor =
     "af: " ++
     showReg a ++
@@ -96,7 +95,7 @@ instance Platform a => Show (Processor a) where
 
 type ProcessorState a = StateT (Processor a) IO
 
-setInterruptsEnabled :: Platform a => Bool -> ProcessorState a ()
+setInterruptsEnabled :: Bool -> ProcessorState a ()
 setInterruptsEnabled enabled =
   modify $ \processor -> processor {interruptsEnabled = enabled}
 
@@ -107,7 +106,7 @@ flagBit P  = 2
 flagBit CY = 0
 flagBit AC = 4
 
-getFlag :: Platform a => Flag -> ProcessorState a Bool
+getFlag :: Flag -> ProcessorState a Bool
 getFlag flag = do
   flags <- gets flags
   return $ testBit flags (flagBit flag)
@@ -118,7 +117,7 @@ assignBit flag =
     then setBit
     else clearBit
 
-setFlag :: Platform a => Flag -> Bool -> ProcessorState a ()
+setFlag :: Flag -> Bool -> ProcessorState a ()
 setFlag flag cond = do
   flags <- gets flags
   let newFlags = assignBit cond flags (flagBit flag)
@@ -242,8 +241,7 @@ binaryArithmetic getter op = do
   writeRegister8 A (fromIntegral result)
 
 carry ::
-     Platform a
-  => (Word16 -> Word16 -> Word16)
+     (Word16 -> Word16 -> Word16)
   -> ProcessorState a (Word16 -> Word16 -> Word16)
 carry op = do
   isSet <- getFlag CY
@@ -261,15 +259,14 @@ testSign = flip testBit 7
 testParity :: Word8 -> Bool
 testParity = even . popCount
 
-updateFlags :: Platform a => Word8 -> ProcessorState a ()
+updateFlags :: Word8 -> ProcessorState a ()
 updateFlags result = do
   setFlag Z (testZero result)
   setFlag S (testSign result)
   setFlag P (testParity result)
 
 arithmetic ::
-     Platform a
-  => (Word16 -> Word16 -> Word16)
+     (Word16 -> Word16 -> Word16)
   -> ProcessorState a Word8
   -> ProcessorState a Word8
   -> ProcessorState a Word8
@@ -288,7 +285,7 @@ arithmetic op left right = do
   setFlag AC ((left4 `op` right4) > 0xf)
   return result8
 
-updateLogicalFlags :: Platform a => Word8 -> ProcessorState a ()
+updateLogicalFlags :: Word8 -> ProcessorState a ()
 updateLogicalFlags result = do
   updateFlags result
   setFlag CY False
@@ -544,7 +541,7 @@ step = do
   process $ toInstruction opCode
   return opCode
 
-initProcessor :: Platform a => a -> Processor a
+initProcessor :: a -> Processor a
 initProcessor platform =
   Processor
     { flags = 0
