@@ -116,11 +116,11 @@ print numLines = withProgram $ liftIO . printProgram numLines
 help :: IO ()
 help = do
   putStrLn "Commands:"
-  putStrLn "  r(un) N[=1000]  Run the program through N instructions"
-  putStrLn "  l(oad) FILE     Load an assembly file"
-  putStrLn "  p(rint) N[=10]  Print the current state of the program"
-  putStrLn "  h(elp)          Display this help message"
-  putStrLn "  q(uit)          Quit the debugger"
+  putStrLn "  r(un)   N[=1000] Run the program through N instructions"
+  putStrLn "  l(oad)  FILE     Load an assembly file"
+  putStrLn "  p(rint) N[=10]   Print the current state of the program"
+  putStrLn "  h(elp)           Display this help message"
+  putStrLn "  q(uit)           Quit the debugger"
 
 error :: ErrorKind -> IO ()
 error (UnknownCommand command) = do
