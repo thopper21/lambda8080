@@ -2,10 +2,12 @@ module Disassembler
   ( disassemble
   ) where
 
-import           Data.ByteString (unpack)
+import           Control.Monad.IO.Class
+import           Control.Monad.State
+import           Data.ByteString           (unpack)
 import           Data.Word
 import           Instruction
-import           Numeric         (showHex)
+import           Numeric                   (showHex)
 import           Processor
 import           Text.Printf
 
@@ -25,21 +27,22 @@ printOp (Binary instruction high low) =
 
 operationWidth (Nullary _)    = 1
 operationWidth (Unary _ _)    = 2
-operationWidth (Binary _ _ _) = 3
+operationWidth Binary{} = 3
 
-disassemble :: Platform a => Word8 -> Processor a -> IO ()
-disassemble count processor = disassemble' count processor 0
+disassemble :: Word8 -> Processor (State a) -> a -> IO ()
+disassemble count processor innerState = disassemble' count processor 0
   where
     disassemble' 0 _ _ = return ()
     disassemble' count processor offset = do
-      let (addr, operation) = getOperation offset processor
-      printf "%04x " addr
-      printOp operation
-      putStrLn ""
+      let (addr, operation) = evalState (getOperation offset processor) innerState
+      liftIO $ printf "%04x " addr
+      liftIO $ printOp operation
+      liftIO $ putStrLn ""
       disassemble' (count - 1) processor (offset + operationWidth operation)
 
-getOperation :: Platform a => Word16 -> Processor a -> (Word16, Operation)
-getOperation offset processor =
+getOperation :: Word16 -> Processor (State a) -> State a (Word16, Operation)
+getOperation offset processor = do
+  instruction <- getInstruction
   case instruction of
     LXI _ -> binary
     MVI _ -> unary
@@ -78,12 +81,21 @@ getOperation offset processor =
     op    -> nullary
   where
     (addr, opCode) = getPC offset processor
-    instruction = toInstruction opCode
-    nullary = (addr, Nullary instruction)
-    unary = (addr, Unary instruction arg)
+    getInstruction = toInstruction <$> opCode
+    nullary = do
+      instruction <- getInstruction
+      return (addr, Nullary instruction)
+    unary = do
+      instruction <- getInstruction
+      arg <- getArg
+      return (addr, Unary instruction arg)
       where
-        (_, arg) = getPC (offset + 1) processor
-    binary = (addr, Binary instruction high low)
+        (_, getArg) = getPC (offset + 1) processor
+    binary = do
+      instruction <- getInstruction
+      low <- getLow
+      high <- getHigh
+      return (addr, Binary instruction high low)
       where
-        (_, low) = getPC (offset + 1) processor
-        (_, high) = getPC (offset + 2) processor
+        (_, getLow) = getPC (offset + 1) processor
+        (_, getHigh) = getPC (offset + 2) processor

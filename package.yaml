@@ -28,6 +28,7 @@ library:
     - bytestring
     - containers
     - mtl
+    - transformers
 
 executables:
   lambda8080-exe:

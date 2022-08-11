@@ -4,13 +4,13 @@ module Repl
   ) where
 
 import           Control.Exception
-import           Control.Monad
+import           Control.Monad.Identity
 import           Control.Monad.State
-import           Data.ByteString     as BS (ByteString, drop, readFile, unpack)
-import           Data.Maybe
+import           Data.ByteString        as BS (ByteString, drop, readFile,
+                                               unpack)
 import           Data.Word
-import           Disassembler        (disassemble)
-import           GHC.IO.Exception    (IOErrorType (InvalidArgument))
+import           Disassembler           (disassemble)
+import           GHC.IO.Exception       (IOErrorType (InvalidArgument))
 import           Instruction
 import           Invaders
 import           Processor
@@ -33,9 +33,14 @@ data Action
   | Skip
   | Error ErrorKind
 
-newtype ReplState = ReplState
-  { program :: Maybe (Processor Invaders)
+type Program = Processor (StateT Invaders Identity)
+
+data GameState = GameState
+  { processor :: Processor (StateT Invaders Identity)
+  , game      :: Invaders
   }
+
+type ReplState = Maybe GameState
 
 parse :: String -> Action
 parse line =
@@ -68,8 +73,9 @@ parse line =
 
 loadWithAssembly :: [Word8] -> StateT ReplState IO ()
 loadWithAssembly assembly = do
-  let processor = initProcessor $ initInvaders assembly
-  modify $ \state -> state {program = Just processor}
+  let processor = initProcessor Invaders.connections
+  let game = initInvaders assembly
+  put $ Just GameState {processor = processor, game = game}
 
 tryLoad :: String -> IO (Either IOException BS.ByteString)
 tryLoad = try . BS.readFile
@@ -81,34 +87,38 @@ load file = do
     Left error     -> liftIO $ putStrLn $ "Invalid file name: " ++ show error
     Right assembly -> loadWithAssembly $ BS.unpack assembly
 
-withProgram ::
-     (Processor Invaders -> StateT ReplState IO ()) -> StateT ReplState IO ()
+withProgram :: (GameState -> StateT ReplState IO ()) -> StateT ReplState IO ()
 withProgram cont = do
-  currentProgram <- gets program
-  case currentProgram of
-    Just program -> cont program
-    Nothing      -> liftIO $ putStrLn "No program has been loaded"
+  current <- Control.Monad.State.get
+  case current of
+    Nothing   -> liftIO $ putStrLn "No program has been loaded"
+    Just game -> cont game
 
-runProgram :: Word -> Processor Invaders -> StateT ReplState IO ()
-runProgram 0 currentProgram = modify $ \s -> s {program = Just currentProgram}
-runProgram n currentProgram = do
-  nextProgram <- liftIO $ execStateT Processor.step currentProgram
-  runProgram (n - 1) nextProgram
+runProgram :: Word -> GameState -> StateT ReplState IO ()
+runProgram 0 currentState = put $ Just currentState
+runProgram n currentState = do
+  let currentProcessor = processor currentState
+  let currentGame = game currentState
+  let (nextProcessor, nextGame) =
+        runState (execStateT Processor.step currentProcessor) currentGame
+  runProgram (n - 1) $ GameState {processor = nextProcessor, game = nextGame}
 
 run :: Word -> StateT ReplState IO ()
 run = withProgram . runProgram
 
-printProgram :: Word8 -> Processor Invaders -> IO ()
+printProgram :: Word8 -> GameState -> IO ()
 printProgram numLines program = do
-  let af = getRegister PSW program
-  let bc = getRegister BC program
-  let de = getRegister DE program
-  let hl = getRegister HL program
-  let pc = getRegister PC program
-  let sp = getRegister SP program
+  let currentProcessor = processor program
+  let currentGame = game program
+  let af = getRegister PSW currentProcessor
+  let bc = getRegister BC currentProcessor
+  let de = getRegister DE currentProcessor
+  let hl = getRegister HL currentProcessor
+  let pc = getRegister PC currentProcessor
+  let sp = getRegister SP currentProcessor
   printf "  af    bc    de    hl    pc    sp\n"
   printf " %04x  %04x  %04x  %04x  %04x  %04x\n" af bc de hl pc sp
-  disassemble numLines program
+  disassemble numLines currentProcessor currentGame
 
 print :: Word8 -> StateT ReplState IO ()
 print numLines = withProgram $ liftIO . printProgram numLines
@@ -156,8 +166,7 @@ loop = do
   eval action
 
 runRepl :: IO ()
-runRepl = evalStateT loop (ReplState {program = Nothing})
+runRepl = evalStateT loop Nothing
 
 runReplWithFile :: String -> IO ()
-runReplWithFile file =
-  evalStateT (evalLoop (load file)) (ReplState {program = Nothing})
+runReplWithFile file = evalStateT (evalLoop (load file)) Nothing

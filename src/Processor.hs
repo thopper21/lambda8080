@@ -2,7 +2,7 @@
 
 module Processor
   ( Processor
-  , Platform(..)
+  , Connections(..)
   , step
   , initProcessor
   , getRegister
@@ -13,7 +13,6 @@ import           Control.Monad.State
 import           Data.Bits
 import           Data.Word
 import           Instruction
-import           Numeric
 
 data Flag
   = Z
@@ -34,21 +33,22 @@ data Registers = Registers
   , pc :: Word16
   }
 
-class Platform a where
-  readMemory :: Word16 -> a -> Word8
-  writeMemory :: Word16 -> Word8 -> a -> a
-  readIn :: Word8 -> a -> IO Word8
-  writeOut :: Word8 -> Word8 -> a -> IO ()
+data Connections m = Connections
+  { readMemory  :: Word16 -> m Word8
+  , writeMemory :: Word16 -> Word8 -> m ()
+  , readIn      :: Word8 -> m Word8
+  , writeOut    :: Word8 -> Word8 -> m ()
+  }
 
-data Processor a = Processor
+data Processor m = Processor
   { flags             :: Word8
   , registers         :: Registers
   , interruptsEnabled :: Bool
   , halted            :: Bool
-  , platform          :: a
+  , connections       :: Connections m
   }
 
-type ProcessorState a = StateT (Processor a) IO
+type ProcessorState m = StateT (Processor m) m
 
 getRegister :: Register16 -> Processor a -> Word16
 getRegister PSW processor = to16 (a . registers $ processor) (flags processor)
@@ -61,12 +61,12 @@ getRegister HL processor =
 getRegister PC processor = pc . registers $ processor
 getRegister SP processor = sp . registers $ processor
 
-getPC :: Platform a => Word16 -> Processor a -> (Word16, Word8)
-getPC offset processor = (addr, readMemory addr (platform processor))
+getPC :: Word16 -> Processor m -> (Word16, m Word8)
+getPC offset processor = (addr, readMemory (connections processor) addr)
   where
     addr = offset + (pc . registers $ processor)
 
-setInterruptsEnabled :: Bool -> ProcessorState a ()
+setInterruptsEnabled :: Monad m => Bool -> ProcessorState m ()
 setInterruptsEnabled enabled =
   modify $ \processor -> processor {interruptsEnabled = enabled}
 
@@ -77,7 +77,7 @@ flagBit P  = 2
 flagBit CY = 0
 flagBit AC = 4
 
-getFlag :: Flag -> ProcessorState a Bool
+getFlag :: Monad m => Flag -> ProcessorState m Bool
 getFlag flag = do
   flags <- gets flags
   return $ testBit flags (flagBit flag)
@@ -88,13 +88,13 @@ assignBit flag =
     then setBit
     else clearBit
 
-setFlag :: Flag -> Bool -> ProcessorState a ()
+setFlag :: Monad m => Flag -> Bool -> ProcessorState m ()
 setFlag flag cond = do
   flags <- gets flags
   let newFlags = assignBit cond flags (flagBit flag)
   modify $ \processor -> processor {flags = newFlags}
 
-readRegister8 :: Platform a => Register8 -> ProcessorState a Word8
+readRegister8 :: Monad m => Register8 -> ProcessorState m Word8
 readRegister8 M = do
   addr <- readRegister16 HL
   readMemory8 addr
@@ -108,7 +108,7 @@ toReader E = e
 toReader H = h
 toReader L = l
 
-readRegister16 :: Platform a => Register16 -> ProcessorState a Word16
+readRegister16 :: Monad m => Register16 -> ProcessorState m Word16
 readRegister16 BC  = readRegister16' B C
 readRegister16 DE  = readRegister16' D E
 readRegister16 HL  = readRegister16' H L
@@ -116,8 +116,7 @@ readRegister16 PC  = gets $ pc . registers
 readRegister16 SP  = gets $ sp . registers
 readRegister16 PSW = liftM2 to16 (readRegister8 A) (gets flags)
 
-readRegister16' ::
-     Platform a => Register8 -> Register8 -> ProcessorState a Word16
+readRegister16' :: Monad m => Register8 -> Register8 -> ProcessorState m Word16
 readRegister16' high low = liftM2 to16 (readRegister8 high) (readRegister8 low)
 
 to16 :: Word8 -> Word8 -> Word16
@@ -126,23 +125,25 @@ to16 high low = shift (fromIntegral high) 8 .|. fromIntegral low
 from16 :: Word16 -> (Word8, Word8)
 from16 value = (fromIntegral $ shift value (-8), fromIntegral value)
 
-readMemory8 :: Platform a => Word16 -> ProcessorState a Word8
-readMemory8 addr = gets $ \processor -> readMemory addr (platform processor)
+readMemory8 :: Monad m => Word16 -> ProcessorState m Word8
+readMemory8 addr = do
+  read <- gets $ readMemory . connections
+  lift $ read addr
 
-readMemory16 :: Platform a => Word16 -> ProcessorState a Word16
+readMemory16 :: Monad m => Word16 -> ProcessorState m Word16
 readMemory16 addr = liftM2 to16 (readMemory8 (addr + 1)) (readMemory8 addr)
 
-readImmediate8 :: Platform a => ProcessorState a Word8
+readImmediate8 :: Monad m => ProcessorState m Word8
 readImmediate8 = do
   counter <- readRegister16 PC
   result <- readMemory8 counter
   writeRegister16 PC (counter + 1)
   return result
 
-readImmediate16 :: Platform a => ProcessorState a Word16
+readImmediate16 :: Monad m => ProcessorState m Word16
 readImmediate16 = liftM2 (flip to16) readImmediate8 readImmediate8
 
-writeRegister8 :: Platform a => Register8 -> Word8 -> ProcessorState a ()
+writeRegister8 :: Monad m => Register8 -> Word8 -> ProcessorState m ()
 writeRegister8 M value = do
   addr <- readRegister16 HL
   writeMemory8 addr value
@@ -158,7 +159,7 @@ toWriter E value registers = registers {e = value}
 toWriter H value registers = registers {h = value}
 toWriter L value registers = registers {l = value}
 
-writeRegister16 :: Platform a => Register16 -> Word16 -> ProcessorState a ()
+writeRegister16 :: Monad m => Register16 -> Word16 -> ProcessorState m ()
 writeRegister16 BC value = writeRegister16' B C value
 writeRegister16 DE value = writeRegister16' D E value
 writeRegister16 HL value = writeRegister16' H L value
@@ -174,46 +175,44 @@ writeRegister16 PSW value = do
   modify $ \processor -> processor {flags = low}
 
 writeRegister16' ::
-     Platform a => Register8 -> Register8 -> Word16 -> ProcessorState a ()
+     Monad m => Register8 -> Register8 -> Word16 -> ProcessorState m ()
 writeRegister16' high low value = do
   let (highVal, lowVal) = from16 value
   writeRegister8 high highVal
   writeRegister8 low lowVal
 
-writeMemory8 :: Platform a => Word16 -> Word8 -> ProcessorState a ()
-writeMemory8 addr value =
-  modify $ \processor ->
-    processor {platform = writeMemory addr value (platform processor)}
+writeMemory8 :: Monad m => Word16 -> Word8 -> ProcessorState m ()
+writeMemory8 addr value = do
+  write <- gets $ writeMemory . connections
+  lift $ write addr value
 
-writeMemory16 :: Platform a => Word16 -> Word16 -> ProcessorState a ()
+writeMemory16 :: Monad m => Word16 -> Word16 -> ProcessorState m ()
 writeMemory16 addr value = do
   let (high, low) = from16 value
   writeMemory8 addr low
   writeMemory8 (addr + 1) high
 
 registerBinaryArithmetic ::
-     Platform a
-  => Register8
-  -> (Word16 -> Word16 -> Word16)
-  -> ProcessorState a ()
+     Monad m => Register8 -> (Word16 -> Word16 -> Word16) -> ProcessorState m ()
 registerBinaryArithmetic = binaryArithmetic . readRegister8
 
 immediateBinaryArithmetic ::
-     Platform a => (Word16 -> Word16 -> Word16) -> ProcessorState a ()
+     Monad m => (Word16 -> Word16 -> Word16) -> ProcessorState m ()
 immediateBinaryArithmetic = binaryArithmetic readImmediate8
 
 binaryArithmetic ::
-     Platform a
-  => ProcessorState a Word8
+     Monad m
+  => ProcessorState m Word8
   -> (Word16 -> Word16 -> Word16)
-  -> ProcessorState a ()
+  -> ProcessorState m ()
 binaryArithmetic getter op = do
   result <- arithmetic op (readRegister8 A) getter
   writeRegister8 A (fromIntegral result)
 
 carry ::
-     (Word16 -> Word16 -> Word16)
-  -> ProcessorState a (Word16 -> Word16 -> Word16)
+     Monad m
+  => (Word16 -> Word16 -> Word16)
+  -> ProcessorState m (Word16 -> Word16 -> Word16)
 carry op = do
   isSet <- getFlag CY
   return $
@@ -230,17 +229,18 @@ testSign = flip testBit 7
 testParity :: Word8 -> Bool
 testParity = even . popCount
 
-updateFlags :: Word8 -> ProcessorState a ()
+updateFlags :: Monad m => Word8 -> ProcessorState m ()
 updateFlags result = do
   setFlag Z (testZero result)
   setFlag S (testSign result)
   setFlag P (testParity result)
 
 arithmetic ::
-     (Word16 -> Word16 -> Word16)
-  -> ProcessorState a Word8
-  -> ProcessorState a Word8
-  -> ProcessorState a Word8
+     Monad m
+  => (Word16 -> Word16 -> Word16)
+  -> ProcessorState m Word8
+  -> ProcessorState m Word8
+  -> ProcessorState m Word8
 arithmetic op left right = do
   leftVal <- left
   rightVal <- right
@@ -256,80 +256,80 @@ arithmetic op left right = do
   setFlag AC ((left4 `op` right4) > 0xf)
   return result8
 
-updateLogicalFlags :: Word8 -> ProcessorState a ()
+updateLogicalFlags :: Monad m => Word8 -> ProcessorState m ()
 updateLogicalFlags result = do
   updateFlags result
   setFlag CY False
   setFlag AC False
 
-jump :: Platform a => ProcessorState a ()
+jump :: Monad m => ProcessorState m ()
 jump = readImmediate16 >>= writeRegister16 PC
 
-jumpIf :: Platform a => Flag -> ProcessorState a ()
+jumpIf :: Monad m => Flag -> ProcessorState m ()
 jumpIf flag = do
   addr <- readImmediate16
   isSet <- getFlag flag
   when isSet $ writeRegister16 PC addr
 
-jumpIfNot :: Platform a => Flag -> ProcessorState a ()
+jumpIfNot :: Monad m => Flag -> ProcessorState m ()
 jumpIfNot flag = do
   addr <- readImmediate16
   isSet <- getFlag flag
   unless isSet $ writeRegister16 PC addr
 
-push :: Platform a => Word16 -> ProcessorState a ()
+push :: Monad m => Word16 -> ProcessorState m ()
 push value = do
   currentStack <- readRegister16 SP
   let newStack = currentStack - 2
   writeMemory16 newStack value
   writeRegister16 SP newStack
 
-callAt :: Platform a => Word16 -> ProcessorState a ()
+callAt :: Monad m => Word16 -> ProcessorState m ()
 callAt newCounter = do
   currentCounter <- readRegister16 PC
   push currentCounter
   writeRegister16 PC newCounter
 
-call :: Platform a => ProcessorState a ()
+call :: Monad m => ProcessorState m ()
 call = readImmediate16 >>= callAt
 
-callIf :: Platform a => Flag -> ProcessorState a ()
+callIf :: Monad m => Flag -> ProcessorState m ()
 callIf flag = do
   addr <- readImmediate16
   isSet <- getFlag flag
   when isSet $ callAt addr
 
-callIfNot :: Platform a => Flag -> ProcessorState a ()
+callIfNot :: Monad m => Flag -> ProcessorState m ()
 callIfNot flag = do
   addr <- readImmediate16
   isSet <- getFlag flag
   unless isSet $ callAt addr
 
-pop :: Platform a => ProcessorState a Word16
+pop :: Monad m => ProcessorState m Word16
 pop = do
   stack <- readRegister16 SP
   value <- readMemory16 stack
   writeRegister16 SP (stack + 2)
   return value
 
-ret :: Platform a => ProcessorState a ()
+ret :: Monad m => ProcessorState m ()
 ret = pop >>= writeRegister16 PC
 
-retIf :: Platform a => Flag -> ProcessorState a ()
+retIf :: Monad m => Flag -> ProcessorState m ()
 retIf flag = do
   isSet <- getFlag flag
   when isSet ret
 
-retIfNot :: Platform a => Flag -> ProcessorState a ()
+retIfNot :: Monad m => Flag -> ProcessorState m ()
 retIfNot flag = do
   isSet <- getFlag flag
   unless isSet ret
 
 logical ::
-     Platform a
-  => ProcessorState a Word8
+     Monad m
+  => ProcessorState m Word8
   -> (Word8 -> Word8 -> Word8)
-  -> ProcessorState a ()
+  -> ProcessorState m ()
 logical getter op = do
   left <- readRegister8 A
   right <- getter
@@ -338,26 +338,25 @@ logical getter op = do
   writeRegister8 A result
 
 logicalRegister ::
-     Platform a => Register8 -> (Word8 -> Word8 -> Word8) -> ProcessorState a ()
+     Monad m => Register8 -> (Word8 -> Word8 -> Word8) -> ProcessorState m ()
 logicalRegister = logical . readRegister8
 
-logicalImmediate ::
-     Platform a => (Word8 -> Word8 -> Word8) -> ProcessorState a ()
+logicalImmediate :: Monad m => (Word8 -> Word8 -> Word8) -> ProcessorState m ()
 logicalImmediate = logical readImmediate8
 
-cmp :: Platform a => ProcessorState a Word8 -> ProcessorState a ()
+cmp :: Monad m => ProcessorState m Word8 -> ProcessorState m ()
 cmp getter = do
   arithmetic (-) (readRegister8 A) getter
   return ()
 
-rot :: Platform a => Int -> (Word8 -> Int -> Word8) -> ProcessorState a ()
+rot :: Monad m => Int -> (Word8 -> Int -> Word8) -> ProcessorState m ()
 rot carryBit op = do
   input <- readRegister8 A
   setFlag CY (testBit input carryBit)
   writeRegister8 A $ op input 1
 
 rotCarry ::
-     Platform a => Int -> Int -> (Word8 -> Int -> Word8) -> ProcessorState a ()
+     Monad m => Int -> Int -> (Word8 -> Int -> Word8) -> ProcessorState m ()
 rotCarry carryBit uncarryBit op = do
   input <- readRegister8 A
   oldCarry <- getFlag CY
@@ -365,7 +364,7 @@ rotCarry carryBit uncarryBit op = do
   setFlag CY (testBit input carryBit)
   writeRegister8 A result
 
-process :: Platform a => Instruction -> ProcessorState a ()
+process :: Monad m => Instruction -> ProcessorState m ()
 process (MOV to from) = readRegister8 from >>= writeRegister8 to
 process (MVI to) = readImmediate8 >>= writeRegister8 to
 process (LXI to) = readImmediate16 >>= writeRegister16 to
@@ -493,27 +492,27 @@ process DAA = do
   writeRegister8 A (value + lowAddend + highAddend)
 process IN = do
   port <- readImmediate8
-  platform <- gets platform
-  result <- liftIO $ readIn port platform
+  read <- gets $ readIn . connections
+  result <- lift $ read port
   writeRegister8 A result
 process OUT = do
   port <- readImmediate8
-  platform <- gets platform
   value <- readRegister8 A
-  liftIO $ writeOut port value platform
+  write <- gets $ writeOut . connections
+  lift $ write port value
 process EI = setInterruptsEnabled True
 process DI = setInterruptsEnabled False
 process NOP = return ()
 process HLT = modify $ \processor -> processor {halted = True}
 
-step :: Platform a => ProcessorState a Word8
+step :: Monad m => ProcessorState m Word8
 step = do
   opCode <- readImmediate8
   process $ toInstruction opCode
   return opCode
 
-initProcessor :: a -> Processor a
-initProcessor platform =
+initProcessor :: Connections m -> Processor m
+initProcessor connections =
   Processor
     { flags = 0
     , registers =
@@ -521,5 +520,5 @@ initProcessor platform =
           {a = 0, b = 0, c = 0, d = 0, e = 0, h = 0, l = 0, pc = 0, sp = 0}
     , interruptsEnabled = True
     , halted = False
-    , platform = platform
+    , connections = connections
     }
