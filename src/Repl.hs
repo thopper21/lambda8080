@@ -24,6 +24,7 @@ data ErrorKind
 data Action
   = Load String
   | Run Word
+  | Print
   | Help
   | Quit
   | Skip
@@ -50,6 +51,8 @@ parse line =
       case readMaybe arg of
         Just numLines -> Run numLines
         Nothing       -> Error (InvalidArg "non-negative integer" arg)
+    ["p"] -> Print
+    ["print"] -> Print
     _ -> Error (UnknownCommand line)
 
 loadWithAssembly :: [Word8] -> StateT ReplState IO ()
@@ -80,11 +83,17 @@ run n = do
     Just g  -> runGame n g
     Nothing -> liftIO $ putStrLn "No game has been loaded."
 
+printProgram :: StateT ReplState IO ()
+printProgram = do
+  program <- gets game
+  liftIO $ print program
+
 help :: IO ()
 help = do
   putStrLn "Commands:"
   putStrLn "  r(un) N[=1000]  Run the program through N instructions"
   putStrLn "  l(oad) FILE     Load an assembly file"
+  putStrLn "  p(rint)         Print the current state of the program"
   putStrLn "  h(elp)          Display this help message"
   putStrLn "  q(uit)          Quit the debugger"
 
@@ -108,6 +117,7 @@ eval (Error errorKind) = evalLoop $ liftIO $ Repl.error errorKind
 eval Help              = evalLoop $ liftIO help
 eval (Load file)       = evalLoop $ load file
 eval (Run numLines)    = evalLoop $ run numLines
+eval Print             = evalLoop printProgram
 
 prompt :: IO ()
 prompt = do
