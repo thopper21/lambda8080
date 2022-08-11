@@ -1,5 +1,6 @@
 module Repl
   ( runRepl
+  , runReplWithFile
   ) where
 
 import           Control.Exception
@@ -121,3 +122,7 @@ loop = do
 
 runRepl :: IO ()
 runRepl = evalStateT loop (ReplState {game = Nothing})
+
+runReplWithFile :: String -> IO ()
+runReplWithFile file =
+  evalStateT (evalLoop (load file)) (ReplState {game = Nothing})
