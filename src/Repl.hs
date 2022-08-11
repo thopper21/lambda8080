@@ -10,9 +10,11 @@ import           Data.ByteString     as BS (ByteString, drop, readFile, unpack)
 import           Data.Maybe
 import           Data.Word
 import           GHC.IO.Exception    (IOErrorType (InvalidArgument))
+import           Instruction
 import           Invaders
 import           Processor
 import           System.IO
+import           Text.Printf
 import           Text.Read
 
 data ErrorKind
@@ -31,7 +33,7 @@ data Action
   | Error ErrorKind
 
 newtype ReplState = ReplState
-  { game :: Maybe (Processor Invaders)
+  { program :: Maybe (Processor Invaders)
   }
 
 parse :: String -> Action
@@ -58,7 +60,7 @@ parse line =
 loadWithAssembly :: [Word8] -> StateT ReplState IO ()
 loadWithAssembly assembly = do
   let processor = initProcessor $ initInvaders assembly
-  modify $ \state -> state {game = Just processor}
+  modify $ \state -> state {program = Just processor}
 
 tryLoad :: String -> IO (Either IOException BS.ByteString)
 tryLoad = try . BS.readFile
@@ -70,23 +72,36 @@ load file = do
     Left error     -> liftIO $ putStrLn $ "Invalid file name: " ++ show error
     Right assembly -> loadWithAssembly $ BS.unpack assembly
 
-runGame :: Word -> Processor Invaders -> StateT ReplState IO ()
-runGame 0 currentGame = modify $ \s -> s {game = Just currentGame}
-runGame n currentGame = do
-  nextGame <- liftIO $ execStateT Processor.step currentGame
-  runGame (n - 1) nextGame
+withProgram ::
+     (Processor Invaders -> StateT ReplState IO ()) -> StateT ReplState IO ()
+withProgram cont = do
+  currentProgram <- gets program
+  case currentProgram of
+    Just program -> cont program
+    Nothing      -> liftIO $ putStrLn "No program has been loaded"
+
+runProgram :: Word -> Processor Invaders -> StateT ReplState IO ()
+runProgram 0 currentProgram = modify $ \s -> s {program = Just currentProgram}
+runProgram n currentProgram = do
+  nextProgram <- liftIO $ execStateT Processor.step currentProgram
+  runProgram (n - 1) nextProgram
 
 run :: Word -> StateT ReplState IO ()
-run n = do
-  currentGame <- gets game
-  case currentGame of
-    Just g  -> runGame n g
-    Nothing -> liftIO $ putStrLn "No game has been loaded."
+run = withProgram . runProgram
 
-printProgram :: StateT ReplState IO ()
-printProgram = do
-  program <- gets game
-  liftIO $ print program
+printProgram :: Processor Invaders -> IO ()
+printProgram program = do
+  let af = getRegister PSW program
+  let bc = getRegister BC program
+  let de = getRegister DE program
+  let hl = getRegister HL program
+  let pc = getRegister PC program
+  let sp = getRegister SP program
+  printf "  af    bc    de    hl    pc    sp\n"
+  printf " %04x  %04x  %04x  %04x  %04x  %04x\n" af bc de hl pc sp
+
+print :: StateT ReplState IO ()
+print = withProgram $ liftIO . printProgram
 
 help :: IO ()
 help = do
@@ -117,7 +132,7 @@ eval (Error errorKind) = evalLoop $ liftIO $ Repl.error errorKind
 eval Help              = evalLoop $ liftIO help
 eval (Load file)       = evalLoop $ load file
 eval (Run numLines)    = evalLoop $ run numLines
-eval Print             = evalLoop printProgram
+eval Print             = evalLoop Repl.print
 
 prompt :: IO ()
 prompt = do
@@ -131,8 +146,8 @@ loop = do
   eval action
 
 runRepl :: IO ()
-runRepl = evalStateT loop (ReplState {game = Nothing})
+runRepl = evalStateT loop (ReplState {program = Nothing})
 
 runReplWithFile :: String -> IO ()
 runReplWithFile file =
-  evalStateT (evalLoop (load file)) (ReplState {game = Nothing})
+  evalStateT (evalLoop (load file)) (ReplState {program = Nothing})

@@ -5,6 +5,7 @@ module Processor
   , Platform(..)
   , step
   , initProcessor
+  , getRegister
   ) where
 
 import           Control.Monad.State
@@ -19,6 +20,17 @@ data Flag
   | P
   | CY
   | AC
+
+getRegister :: Register16 -> Processor a -> Word16
+getRegister PSW processor = to16 (a . registers $ processor) (flags processor)
+getRegister BC processor =
+  to16 (b . registers $ processor) (c . registers $ processor)
+getRegister DE processor =
+  to16 (d . registers $ processor) (e . registers $ processor)
+getRegister HL processor =
+  to16 (h . registers $ processor) (l . registers $ processor)
+getRegister PC processor = pc . registers $ processor
+getRegister SP processor = sp . registers $ processor
 
 data Registers = Registers
   { a  :: Word8
@@ -45,53 +57,6 @@ data Processor a = Processor
   , halted            :: Bool
   , platform          :: a
   }
-
-instance Show (Processor a) where
-  show processor =
-    "af: " ++
-    showReg a ++
-    showFlags ++
-    " bc: " ++
-    showReg b ++
-    showReg c ++
-    " de: " ++
-    showReg d ++
-    showReg e ++
-    " hl: " ++
-    showReg h ++ showReg l ++ " pc: " ++ showReg16 pc ++ " sp:" ++ showReg16 sp
-    where
-      showReg reg = toStr $ fromIntegral (reg . registers $ processor)
-      showReg16 reg = show $ showHex (reg . registers $ processor) ""
-      showFlags = toStr $ fromIntegral (flags processor)
-      toStr :: Word8 -> String
-      toStr x =
-        case toStr' x of
-          [l, h] -> [h, l]
-          [l]    -> ['0', l]
-          []     -> ['0', '0']
-      toStr' :: Word8 -> String
-      toStr' 0 = []
-      toStr' x = c : toStr' rem
-        where
-          c =
-            case x `mod` 16 of
-              0  -> '0'
-              1  -> '1'
-              2  -> '2'
-              3  -> '3'
-              4  -> '4'
-              5  -> '5'
-              6  -> '6'
-              7  -> '7'
-              8  -> '8'
-              9  -> '9'
-              10 -> 'a'
-              11 -> 'b'
-              12 -> 'c'
-              13 -> 'd'
-              14 -> 'e'
-              15 -> 'f'
-          rem = x `div` 16
 
 type ProcessorState a = StateT (Processor a) IO
 
