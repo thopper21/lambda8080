@@ -68,7 +68,7 @@ run n = do
 help :: IO ()
 help = do
   putStrLn "Commands:"
-  putStrLn "\tl(oad) FILE\t Load an assembly file"
+  putStrLn "\tl(oad) FILE\tLoad an assembly file"
   putStrLn "\th(elp)\t\tDisplay this help message"
   putStrLn "\tq(uit)\t\tQuit the debugger"
   putStrLn "\tr(un) N\t\tRun the program through N instructions"
