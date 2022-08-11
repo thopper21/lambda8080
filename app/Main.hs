@@ -22,10 +22,6 @@ argsParser = Args <$> file'
         (long "file" <> short 'f' <> metavar "FILE" <>
          help "The file to disassemble")
 
---runDisassembler args = do
---  assembly <- BS.readFile $ file args
---  let instructions = disassemble $ BS.unpack (BS.drop (offset args) assembly)
---  mapM_ print $ take (count args) instructions
 run args = maybe runRepl runReplWithFile (file args)
 
 main = run =<< execParser opts
