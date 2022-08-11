@@ -17,6 +17,7 @@ data Action
   = Load String
   | Help
   | Quit
+  | Skip
   | Error ErrorKind
 
 newtype ReplState = ReplState
@@ -26,6 +27,7 @@ newtype ReplState = ReplState
 parse :: String -> Action
 parse line =
   case words line of
+    []             -> Skip
     ["q"]          -> Quit
     ["quit"]       -> Quit
     ["h"]          -> Help
@@ -59,6 +61,7 @@ evalLoop action = do
   loop
 
 eval :: Action -> StateT ReplState IO ()
+eval Skip              = evalLoop $ return ()
 eval Quit              = return ()
 eval (Error errorKind) = evalLoop $ liftIO $ Repl.error errorKind
 eval Help              = evalLoop $ liftIO help
