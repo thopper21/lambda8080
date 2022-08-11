@@ -83,10 +83,10 @@ run n = do
 help :: IO ()
 help = do
   putStrLn "Commands:"
-  putStrLn "\tr(un) N[=1000]\tRun the program through N instructions"
-  putStrLn "\tl(oad) FILE\tLoad an assembly file"
-  putStrLn "\th(elp)\t\tDisplay this help message"
-  putStrLn "\tq(uit)\t\tQuit the debugger"
+  putStrLn "  r(un) N[=1000]  Run the program through N instructions"
+  putStrLn "  l(oad) FILE     Load an assembly file"
+  putStrLn "  h(elp)          Display this help message"
+  putStrLn "  q(uit)          Quit the debugger"
 
 error :: ErrorKind -> IO ()
 error (UnknownCommand command) = do
