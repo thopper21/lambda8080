@@ -9,6 +9,7 @@ import           Control.Monad.State
 import           Data.ByteString     as BS (ByteString, drop, readFile, unpack)
 import           Data.Maybe
 import           Data.Word
+import           Disassembler        (disassemble)
 import           GHC.IO.Exception    (IOErrorType (InvalidArgument))
 import           Instruction
 import           Invaders
@@ -16,7 +17,6 @@ import           Processor
 import           System.IO
 import           Text.Printf
 import           Text.Read
-import Disassembler (disassemble)
 
 data ErrorKind
   = UnknownCommand String
@@ -27,7 +27,7 @@ data ErrorKind
 data Action
   = Load String
   | Run Word
-  | Print
+  | Print Word8
   | Help
   | Quit
   | Skip
@@ -54,8 +54,16 @@ parse line =
       case readMaybe arg of
         Just numLines -> Run numLines
         Nothing       -> Error (InvalidArg "non-negative integer" arg)
-    ["p"] -> Print
-    ["print"] -> Print
+    ["p"] -> Print 10
+    ["print"] -> Print 10
+    ["p", arg] ->
+      case readMaybe arg of
+        Just numLines -> Print numLines
+        Nothing       -> Error (InvalidArg "non-negative integer" arg)
+    ["print", arg] ->
+      case readMaybe arg of
+        Just numLines -> Print numLines
+        Nothing       -> Error (InvalidArg "non-negative integer" arg)
     _ -> Error (UnknownCommand line)
 
 loadWithAssembly :: [Word8] -> StateT ReplState IO ()
@@ -90,8 +98,8 @@ runProgram n currentProgram = do
 run :: Word -> StateT ReplState IO ()
 run = withProgram . runProgram
 
-printProgram :: Processor Invaders -> IO ()
-printProgram program = do
+printProgram :: Word8 -> Processor Invaders -> IO ()
+printProgram numLines program = do
   let af = getRegister PSW program
   let bc = getRegister BC program
   let de = getRegister DE program
@@ -100,17 +108,17 @@ printProgram program = do
   let sp = getRegister SP program
   printf "  af    bc    de    hl    pc    sp\n"
   printf " %04x  %04x  %04x  %04x  %04x  %04x\n" af bc de hl pc sp
-  disassemble 10 program
+  disassemble numLines program
 
-print :: StateT ReplState IO ()
-print = withProgram $ liftIO . printProgram
+print :: Word8 -> StateT ReplState IO ()
+print numLines = withProgram $ liftIO . printProgram numLines
 
 help :: IO ()
 help = do
   putStrLn "Commands:"
   putStrLn "  r(un) N[=1000]  Run the program through N instructions"
   putStrLn "  l(oad) FILE     Load an assembly file"
-  putStrLn "  p(rint)         Print the current state of the program"
+  putStrLn "  p(rint) N[=10]  Print the current state of the program"
   putStrLn "  h(elp)          Display this help message"
   putStrLn "  q(uit)          Quit the debugger"
 
@@ -134,7 +142,7 @@ eval (Error errorKind) = evalLoop $ liftIO $ Repl.error errorKind
 eval Help              = evalLoop $ liftIO help
 eval (Load file)       = evalLoop $ load file
 eval (Run numLines)    = evalLoop $ run numLines
-eval Print             = evalLoop Repl.print
+eval (Print numLines)  = evalLoop $ Repl.print numLines
 
 prompt :: IO ()
 prompt = do
