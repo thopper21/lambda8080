@@ -6,6 +6,7 @@ module Processor
   , step
   , initProcessor
   , getRegister
+  , getPC
   ) where
 
 import           Control.Monad.State
@@ -20,17 +21,6 @@ data Flag
   | P
   | CY
   | AC
-
-getRegister :: Register16 -> Processor a -> Word16
-getRegister PSW processor = to16 (a . registers $ processor) (flags processor)
-getRegister BC processor =
-  to16 (b . registers $ processor) (c . registers $ processor)
-getRegister DE processor =
-  to16 (d . registers $ processor) (e . registers $ processor)
-getRegister HL processor =
-  to16 (h . registers $ processor) (l . registers $ processor)
-getRegister PC processor = pc . registers $ processor
-getRegister SP processor = sp . registers $ processor
 
 data Registers = Registers
   { a  :: Word8
@@ -59,6 +49,22 @@ data Processor a = Processor
   }
 
 type ProcessorState a = StateT (Processor a) IO
+
+getRegister :: Register16 -> Processor a -> Word16
+getRegister PSW processor = to16 (a . registers $ processor) (flags processor)
+getRegister BC processor =
+  to16 (b . registers $ processor) (c . registers $ processor)
+getRegister DE processor =
+  to16 (d . registers $ processor) (e . registers $ processor)
+getRegister HL processor =
+  to16 (h . registers $ processor) (l . registers $ processor)
+getRegister PC processor = pc . registers $ processor
+getRegister SP processor = sp . registers $ processor
+
+getPC :: Platform a => Word16 -> Processor a -> (Word16, Word8)
+getPC offset processor = (addr, readMemory addr (platform processor))
+  where
+    addr = offset + (pc . registers $ processor)
 
 setInterruptsEnabled :: Bool -> ProcessorState a ()
 setInterruptsEnabled enabled =

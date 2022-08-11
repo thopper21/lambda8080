@@ -16,6 +16,7 @@ import           Processor
 import           System.IO
 import           Text.Printf
 import           Text.Read
+import Disassembler (disassemble)
 
 data ErrorKind
   = UnknownCommand String
@@ -99,6 +100,7 @@ printProgram program = do
   let sp = getRegister SP program
   printf "  af    bc    de    hl    pc    sp\n"
   printf " %04x  %04x  %04x  %04x  %04x  %04x\n" af bc de hl pc sp
+  disassemble 10 program
 
 print :: StateT ReplState IO ()
 print = withProgram $ liftIO . printProgram
