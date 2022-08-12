@@ -19,7 +19,6 @@ data Operation
            Word8
            Word8
 
-printOp :: Operation -> IO ()
 printOp (Nullary instruction) = printf "%s" (shows instruction "")
 printOp (Unary instruction arg) = printf "%s %02x" (shows instruction "") arg
 printOp (Binary instruction high low) =
@@ -29,18 +28,17 @@ operationWidth (Nullary _)    = 1
 operationWidth (Unary _ _)    = 2
 operationWidth Binary{} = 3
 
-disassemble :: Word8 -> Processor (State a) -> a -> IO ()
+
 disassemble count processor innerState = disassemble' count processor 0
   where
     disassemble' 0 _ _ = return ()
     disassemble' count processor offset = do
-      let (addr, operation) = evalState (getOperation offset processor) innerState
+      (addr, operation) <- evalStateT (getOperation offset processor) innerState
       liftIO $ printf "%04x " addr
       liftIO $ printOp operation
       liftIO $ putStrLn ""
       disassemble' (count - 1) processor (offset + operationWidth operation)
 
-getOperation :: Word16 -> Processor (State a) -> State a (Word16, Operation)
 getOperation offset processor = do
   instruction <- getInstruction
   case instruction of

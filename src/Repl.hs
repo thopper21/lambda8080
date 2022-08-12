@@ -33,14 +33,12 @@ data Action
   | Skip
   | Error ErrorKind
 
-type Program = Processor (StateT Invaders Identity)
-
 data GameState = GameState
-  { processor :: Processor (StateT Invaders Identity)
+  { processor :: Processor (StateT Invaders IO)
   , game      :: Invaders
   }
 
-type ReplState = Maybe GameState
+type ReplState = StateT (Maybe GameState) IO
 
 parse :: String -> Action
 parse line =
@@ -71,7 +69,7 @@ parse line =
         Nothing       -> Error (InvalidArg "non-negative integer" arg)
     _ -> Error (UnknownCommand line)
 
-loadWithAssembly :: [Word8] -> StateT ReplState IO ()
+loadWithAssembly :: [Word8] -> ReplState ()
 loadWithAssembly assembly = do
   let processor = initProcessor Invaders.connections
   let game = initInvaders assembly
@@ -80,30 +78,30 @@ loadWithAssembly assembly = do
 tryLoad :: String -> IO (Either IOException BS.ByteString)
 tryLoad = try . BS.readFile
 
-load :: String -> StateT ReplState IO ()
+load :: String -> ReplState ()
 load file = do
   contents <- liftIO $ tryLoad file
   case contents of
     Left error     -> liftIO $ putStrLn $ "Invalid file name: " ++ show error
     Right assembly -> loadWithAssembly $ BS.unpack assembly
 
-withProgram :: (GameState -> StateT ReplState IO ()) -> StateT ReplState IO ()
+withProgram :: (GameState -> ReplState ()) -> ReplState ()
 withProgram cont = do
   current <- Control.Monad.State.get
   case current of
     Nothing   -> liftIO $ putStrLn "No program has been loaded"
     Just game -> cont game
 
-runProgram :: Word -> GameState -> StateT ReplState IO ()
+runProgram :: Word -> GameState -> ReplState ()
 runProgram 0 currentState = put $ Just currentState
 runProgram n currentState = do
   let currentProcessor = processor currentState
   let currentGame = game currentState
-  let (nextProcessor, nextGame) =
-        runState (execStateT Processor.step currentProcessor) currentGame
+  (nextProcessor, nextGame) <-
+    liftIO $ runStateT (execStateT Processor.step currentProcessor) currentGame
   runProgram (n - 1) $ GameState {processor = nextProcessor, game = nextGame}
 
-run :: Word -> StateT ReplState IO ()
+run :: Word -> ReplState ()
 run = withProgram . runProgram
 
 printProgram :: Word8 -> GameState -> IO ()
@@ -120,7 +118,7 @@ printProgram numLines program = do
   printf " %04x  %04x  %04x  %04x  %04x  %04x\n" af bc de hl pc sp
   disassemble numLines currentProcessor currentGame
 
-print :: Word8 -> StateT ReplState IO ()
+print :: Word8 -> ReplState ()
 print numLines = withProgram $ liftIO . printProgram numLines
 
 help :: IO ()
@@ -140,12 +138,12 @@ error (InvalidArg expected actual) =
   putStrLn $ "Invalid argument. Expected " ++ expected ++ ", found " ++ actual
 error (MissingArg argName) = putStrLn $ "Missing argument: " ++ argName
 
-evalLoop :: StateT ReplState IO () -> StateT ReplState IO ()
+evalLoop :: ReplState () -> ReplState ()
 evalLoop action = do
   action
   loop
 
-eval :: Action -> StateT ReplState IO ()
+eval :: Action -> ReplState ()
 eval Skip              = evalLoop $ return ()
 eval Quit              = return ()
 eval (Error errorKind) = evalLoop $ liftIO $ Repl.error errorKind
@@ -159,7 +157,7 @@ prompt = do
   putStr "lambda8080> "
   hFlush stdout
 
-loop :: StateT ReplState IO ()
+loop :: ReplState ()
 loop = do
   liftIO prompt
   action <- parse <$> liftIO getLine
