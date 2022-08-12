@@ -57,6 +57,11 @@ parse line =
       case readMaybe arg of
         Just numLines -> Run numLines
         Nothing       -> Error (InvalidArg "non-negative integer" arg)
+    ["run"] -> Run 1000
+    ["run", arg] ->
+      case readMaybe arg of
+        Just numLines -> Run numLines
+        Nothing       -> Error (InvalidArg "non-negative integer" arg)
     ["p"] -> Print 10
     ["print"] -> Print 10
     ["p", arg] ->
