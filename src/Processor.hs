@@ -5,8 +5,10 @@ module Processor
   , Connections(..)
   , step
   , initProcessor
+  , getCycles
   , getRegister
   , getPC
+  , cycles
   ) where
 
 import           Control.Monad.State
@@ -45,6 +47,7 @@ data Processor m = Processor
   , registers         :: Registers
   , interruptsEnabled :: Bool
   , halted            :: Bool
+  , cycles            :: Int
   , connections       :: Connections m
   }
 
@@ -505,10 +508,107 @@ process DI = setInterruptsEnabled False
 process NOP = return ()
 process HLT = modify $ \processor -> processor {halted = True}
 
+getCycles :: Instruction -> Int
+getCycles (MOV M _) = 7
+getCycles (MOV _ M) = 7
+getCycles (MOV _ _) = 5
+getCycles (MVI M)   = 10
+getCycles (MVI _)   = 7
+getCycles (LXI _)   = 10
+getCycles (STAX _)  = 7
+getCycles (LDAX _)  = 7
+getCycles STA       = 13
+getCycles LDA       = 13
+getCycles SHLD      = 16
+getCycles LHLD      = 16
+getCycles XCHG      = 4
+getCycles (PUSH _)  = 11
+getCycles (POP _)   = 10
+getCycles XTHL      = 18
+getCycles SPHL      = 5
+getCycles JMP       = 10
+getCycles JC        = 10
+getCycles JNC       = 10
+getCycles JZ        = 10
+getCycles JNZ       = 10
+getCycles JP        = 10
+getCycles JM        = 10
+getCycles JPE       = 10
+getCycles JPO       = 10
+getCycles PCHL      = 5
+getCycles CALL      = 17
+getCycles CC        = 11
+getCycles CNC       = 11
+getCycles CZ        = 11
+getCycles CNZ       = 11
+getCycles CP        = 11
+getCycles CM        = 11
+getCycles CPE       = 11
+getCycles CPO       = 11
+getCycles RET       = 10
+getCycles RC        = 5
+getCycles RNC       = 5
+getCycles RZ        = 5
+getCycles RNZ       = 5
+getCycles RP        = 5
+getCycles RM        = 5
+getCycles RPE       = 5
+getCycles RPO       = 5
+getCycles (RST _)   = 11
+getCycles (INR M)   = 10
+getCycles (INR _)   = 5
+getCycles (DCR M)   = 10
+getCycles (DCR _)   = 5
+getCycles (INX _)   = 5
+getCycles (DCX _)   = 5
+getCycles (ADD M)   = 7
+getCycles (ADD _)   = 4
+getCycles (ADC M)   = 7
+getCycles (ADC _)   = 4
+getCycles ADI       = 7
+getCycles ACI       = 7
+getCycles (DAD _)   = 10
+getCycles (SUB M)   = 7
+getCycles (SUB _)   = 4
+getCycles (SBB M)   = 7
+getCycles (SBB _)   = 4
+getCycles SUI       = 7
+getCycles SBI       = 7
+getCycles (ANA M)   = 7
+getCycles (ANA _)   = 4
+getCycles (XRA M)   = 7
+getCycles (XRA _)   = 4
+getCycles (ORA M)   = 7
+getCycles (ORA _)   = 4
+getCycles (CMP M)   = 7
+getCycles (CMP _)   = 4
+getCycles ANI       = 7
+getCycles XRI       = 7
+getCycles ORI       = 7
+getCycles CPI       = 7
+getCycles RLC       = 4
+getCycles RRC       = 4
+getCycles RAL       = 4
+getCycles RAR       = 4
+getCycles CMA       = 4
+getCycles STC       = 4
+getCycles CMC       = 4
+getCycles DAA       = 4
+getCycles IN        = 10
+getCycles OUT       = 10
+getCycles EI        = 4
+getCycles DI        = 4
+getCycles NOP       = 4
+getCycles HLT       = 7
+
 step :: Monad m => ProcessorState m Word8
 step = do
   opCode <- readImmediate8
-  process $ toInstruction opCode
+  let instruction = toInstruction opCode
+  process instruction
+  currentCycles <- gets cycles
+  let newCycles = currentCycles + getCycles instruction
+  modify $ \processor -> processor {cycles = newCycles}
   return opCode
 
 initProcessor :: Connections m -> Processor m
@@ -520,5 +620,6 @@ initProcessor connections =
           {a = 0, b = 0, c = 0, d = 0, e = 0, h = 0, l = 0, pc = 0, sp = 0}
     , interruptsEnabled = True
     , halted = False
+    , cycles = 0
     , connections = connections
     }

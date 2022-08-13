@@ -119,8 +119,9 @@ printProgram numLines program = do
   let hl = getRegister HL currentProcessor
   let pc = getRegister PC currentProcessor
   let sp = getRegister SP currentProcessor
-  printf "  af    bc    de    hl    pc    sp\n"
-  printf " %04x  %04x  %04x  %04x  %04x  %04x\n" af bc de hl pc sp
+  let cycs = cycles currentProcessor
+  printf "  af    bc    de    hl    pc    sp    cycles\n"
+  printf " %04x  %04x  %04x  %04x  %04x  %04x   %d\n" af bc de hl pc sp cycs
   disassemble numLines currentProcessor currentGame
 
 print :: Word8 -> ReplState ()
